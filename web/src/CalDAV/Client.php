@@ -167,10 +167,11 @@ class Client
             }
 
             foreach ($properties as $resource) {
-                $calendars = $this->getCalendars($this->getCalendarHomeSet($resource['value']));
+                $p = new Principal($resource['value']);
+                $calendars = $this->getCalendars($this->getCalendarHomeSet($p));
                 error_log(print_r($calendars, true));
                 foreach ($calendars as $calendar) {
-                    $calendar->setOwner(new Principal($resource['value']));
+                    $calendar->setOwner($p);
                 }
 
                 $group_calendars = array_merge($group_calendars, $calendars);
