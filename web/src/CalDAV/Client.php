@@ -168,7 +168,7 @@ class Client
 
             foreach ($properties as $resource) {
                 $calendars = $this->getCalendars($this->getCalendarHomeSet($resource['value']));
-
+                error_log(print_r($calendars, true));
                 foreach ($calendars as $calendar) {
                     $calendar->setOwner(new Principal($resource['value']));
                 }
