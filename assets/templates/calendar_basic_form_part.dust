@@ -20,5 +20,11 @@ class="calendar_color pick_color form-control" maxlength="7" size="7" />
   <a href="{public_url}">
   {@i18n type="labels" name="publicurl"/}</p>
   </a>
+
+
+  <i class="fa fa-lg fa-link"></i> 
+  <a href="{public_url}?export">
+  {@i18n type="labels" name="publicurlics"/}</p>
+  </a>
  </div>
 {/public_url}

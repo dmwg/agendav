@@ -120,6 +120,8 @@ $translations = array(
     'labels.sharewith' => 'Compartir con',
     'labels.currentlysharing' => 'Compartiendo este calendario',
     'labels.publicurl' => 'URL para clientes de escritorio',
+    'labels.publicurlics' => 'Subscription URL for other clients',
+
 
     'labels.access' => 'Acceso',
     'labels.readonly' => 'Sólo lectura',

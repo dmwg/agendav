@@ -120,6 +120,8 @@ $translations = array(
     'labels.sharewith' => 'Jaga',
     'labels.currentlysharing' => 'See kalender on praegu jagatud',
     'labels.publicurl' => 'URL kalendri töölaua rakendustele',
+    'labels.publicurlics' => 'Subscription URL for other clients',
+
 
     'labels.access' => 'Ligipääs',
     'labels.readonly' => 'Ainult loetav',

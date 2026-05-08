@@ -120,6 +120,8 @@ $translations = array(
     'labels.sharewith' => '共有する',
     'labels.currentlysharing' => '現在このカレンダーは共有されています',
     'labels.publicurl' => 'カレンダーのURL（右クリックして保存）',
+    'labels.publicurlics' => 'Subscription URL for other clients',
+
 
     'labels.access' => 'アクセス制限',
     'labels.readonly' => '読み込みのみ',

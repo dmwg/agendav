@@ -120,6 +120,8 @@ $translations = array(
     'labels.sharewith' => 'Jaa',
     'labels.currentlysharing' => 'Tämä kalenteri on jaettu',
     'labels.publicurl' => 'Verkko-osoite kalenterisovelluksia varten',
+    'labels.publicurlics' => 'Subscription URL for other clients',
+
 
     'labels.access' => 'Pääsy',
     'labels.readonly' => 'Vain luku',

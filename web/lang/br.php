@@ -120,6 +120,8 @@ $translations = array(
     'labels.sharewith' => 'Rannañ gant',
     'labels.currentlysharing' => 'O rannañ an deiziataer er mare-mañ',
     'labels.publicurl' => 'URL an deiziataer evit an arvalien CalDAV',
+    'labels.publicurlics' => 'Subscription URL for other clients',
+
 
     'labels.access' => 'Haeziñ',
     'labels.readonly' => 'Lenn hepken',

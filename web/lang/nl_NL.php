@@ -120,6 +120,8 @@ $translations = array(
     'labels.sharewith' => 'Delen met',
     'labels.currentlysharing' => 'De agenda wordt gedeeld',
     'labels.publicurl' => 'URL voor agenda-applicaties',
+    'labels.publicurlics' => 'Subscription URL for other clients',
+
 
     'labels.access' => 'Toegang',
     'labels.readonly' => 'Alleen lezen',

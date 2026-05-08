@@ -120,6 +120,8 @@ $translations = array(
     'labels.sharewith' => 'Del med',
     'labels.currentlysharing' => 'Deler denne kalenderen nå',
     'labels.publicurl' => 'Kalender URL for CalDAV klienter',
+    'labels.publicurlics' => 'Subscription URL for other clients',
+
 
     'labels.access' => 'Tilgang',
     'labels.readonly' => 'Les',
