@@ -693,6 +693,22 @@ var open_event_edit_dialog = function open_event_edit_dialog(event) {
 
       event_fields.timezone = AgenDAVUserPrefs.timezone;
 
+      // New events can be created on several calendars at once
+      if (is_new) {
+        var targets = selected_calendars($('#event_edit_form'));
+
+        if (targets.length === 0) {
+          show_error(
+            t_default('messages', 'error_nocalendarselected', 'Select at least one calendar'),
+            ''
+          );
+          return;
+        }
+
+        save_event_in_calendars(event_fields, targets);
+        return;
+      }
+
       send_form({
         form_object: $('#event_edit_form'),
         data: event_fields,
@@ -754,6 +770,14 @@ var open_event_edit_dialog = function open_event_edit_dialog(event) {
       // Reminders
       reminders_manager();
 
+      // Calendar multi-select dropdown (new events only)
+      setup_calendar_multiselect($('#event_edit_dialog'), function(targets) {
+        if (targets.length > 0) {
+          $.fn.colorPicker.calendarColor = targets[0].color;
+          $('input.pick_color').next('.color_picker').css('background-color', $.fn.colorPicker.calendarColor);
+        }
+      });
+
       // Update color picker when calendar selection changes
       $('#event_edit_form select[name="calendar"]').on('change', function() {
         var selectedCalendarId = $(this).val();
@@ -767,6 +791,207 @@ var open_event_edit_dialog = function open_event_edit_dialog(event) {
       });
     }
   });
+};
+
+
+/**
+ * Like t(), but falls back to a default text when the key is missing in the
+ * current language (AgenDAV only ships the user's locale to the browser)
+ */
+var t_default = function t_default(domain, key, fallback, params) {
+  var result = t(domain, key, params);
+
+  if (result === domain + '.' + key) {
+    result = fallback;
+    for (var i in params) {
+      result = result.replace(i, params[i]);
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Returns the calendars checked on the multi-select dropdown inside $where
+ *
+ * @return Array of { url, displayname, color }
+ */
+var selected_calendars = function selected_calendars($where) {
+  return $where.find('input.calendar-choice:checked').map(function() {
+    var $cb = $(this);
+    return {
+      url: $cb.val(),
+      displayname: $cb.data('displayname'),
+      color: $cb.data('color')
+    };
+  }).get();
+};
+
+/**
+ * Wires up the calendar multi-select dropdown. Bootstrap's dropdown.js is not
+ * bundled with AgenDAV, so opening/closing is handled here.
+ *
+ * @param jQuery $dialog Dialog containing the dropdown
+ * @param Function on_change Called with selected_calendars() on every change
+ */
+var setup_calendar_multiselect = function setup_calendar_multiselect($dialog, on_change) {
+  var $dropdown = $dialog.find('.calendar-multiselect');
+
+  if ($dropdown.length === 0) {
+    return;
+  }
+
+  var $toggle = $dropdown.find('.dropdown-toggle');
+  var $label = $dropdown.find('.selected-calendars');
+
+  var set_open = function(open) {
+    $dropdown.toggleClass('open', open);
+    $toggle.attr('aria-expanded', open ? 'true' : 'false');
+  };
+
+  var refresh = function() {
+    var targets = selected_calendars($dropdown);
+    var text;
+
+    if (targets.length === 0) {
+      text = t_default('labels', 'selectcalendars', 'Select calendars');
+    } else if (targets.length <= 2) {
+      text = $.map(targets, function(c) { return c.displayname; }).join(', ');
+    } else {
+      text = t_default('labels', 'ncalendarsselected', '%count calendars selected',
+        { '%count': targets.length });
+    }
+
+    $label.text(text);
+    $toggle.attr('title', $.map(targets, function(c) { return c.displayname; }).join(', '));
+    $dropdown.toggleClass('has-error', targets.length === 0);
+
+    if (on_change !== undefined) {
+      on_change(targets);
+    }
+  };
+
+  $toggle.on('click', function(e) {
+    e.preventDefault();
+    set_open(!$dropdown.hasClass('open'));
+  });
+
+  // Keep the menu open while ticking checkboxes
+  $dropdown.find('.dropdown-menu').on('click', function(e) {
+    e.stopPropagation();
+  });
+
+  $dropdown.on('change', 'input.calendar-choice', refresh);
+
+  // Close when clicking anywhere else in the dialog
+  $dialog.on('click', function(e) {
+    if ($(e.target).closest('.calendar-multiselect').length === 0) {
+      set_open(false);
+    }
+  });
+
+  // Escape closes the menu instead of the whole dialog
+  $dropdown.on('keydown', function(e) {
+    if (e.which === 27 && $dropdown.hasClass('open')) {
+      e.stopPropagation();
+      set_open(false);
+      $toggle.focus();
+    }
+  });
+
+  refresh();
+};
+
+/**
+ * Creates the same new event on several calendars, one request per calendar.
+ * Requests are sent one after another. If some calendars fail, the ones that
+ * worked are unticked so pressing Save again won't create duplicates.
+ *
+ * @param Object fields Serialized event form
+ * @param Array targets Result of selected_calendars()
+ */
+var save_event_in_calendars = function save_event_in_calendars(fields, targets) {
+  var $form = $('#event_edit_form');
+
+  if ($form.data('saving') === true) {
+    return;
+  }
+
+  // send_form() bails out silently on empty required fields, which would
+  // break the request chain below, so check them before starting
+  if (!check_required_fields($form)) {
+    show_error(t('messages', 'error_empty_fields'), '');
+    return;
+  }
+
+  $form.data('saving', true);
+
+  var succeeded = [];
+  var failed = [];
+  var index = 0;
+
+  var finish = function() {
+    $form.data('saving', false);
+
+    $.each(succeeded, function(i, cal) {
+      reload_event_source(cal.url);
+    });
+
+    if (failed.length === 0) {
+      destroy_dialog('#event_edit_dialog');
+      return;
+    }
+
+    // Untick calendars where the event was already created
+    $.each(succeeded, function(i, cal) {
+      $form.find('input.calendar-choice').filter(function() {
+        return $(this).val() === cal.url;
+      }).prop('checked', false);
+    });
+    $form.find('input.calendar-choice').first().trigger('change');
+
+    var details = $.map(failed, function(f) {
+      return f.calendar.displayname + (f.message ? ': ' + f.message : '');
+    }).join('<br>');
+
+    show_error(
+      t_default('messages', 'error_eventpartiallysaved',
+        'The event could not be saved on these calendars'),
+      details
+    );
+  };
+
+  var next = function() {
+    if (index >= targets.length) {
+      finish();
+      return;
+    }
+
+    var target = targets[index++];
+
+    send_form({
+      form_object: $form,
+      data: $.extend({}, fields, { calendar: target.url }),
+      success: function() {
+        succeeded.push(target);
+        next();
+      },
+      exception: function(error) {
+        // Validation error: same input for every calendar, so stop here
+        $form.data('saving', false);
+        $.each(succeeded, function(i, cal) {
+          reload_event_source(cal.url);
+        });
+        show_error(t('messages', 'error_invalidinput'), error);
+      },
+      error: function(message) {
+        failed.push({ calendar: target, message: message });
+        next();
+      }
+    });
+  };
+
+  next();
 };
 
 

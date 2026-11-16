@@ -97,6 +97,8 @@ $translations = [
     'labels.deleteevent' => 'Delete event',
 
     'labels.calendars' => 'Calendars',
+    'labels.selectcalendars' => 'Select calendars',
+    'labels.ncalendarsselected' => '%count calendars selected',
     'labels.shared_calendars' => 'Shared calendars',
     'labels.subscribed_calendars' => 'Subscriptions',
     'labels.refresh' => 'Refresh',
@@ -277,6 +279,9 @@ $translations = [
     'rrule.nd' => 'nd',
     'rrule.rd' => 'rd',
     'rrule.th' => 'th',
+
+    'messages.error_nocalendarselected' => 'Select at least one calendar',
+    'messages.error_eventpartiallysaved' => 'The event could not be saved on these calendars',
 ];
 
 return $translations;

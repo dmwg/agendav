@@ -97,6 +97,8 @@ $translations = [
     'labels.deleteevent' => 'Termin löschen',
 
     'labels.calendars' => 'Kalender',
+    'labels.selectcalendars' => 'Kalender auswählen',
+    'labels.ncalendarsselected' => '%count Kalender ausgewählt',
     'labels.shared_calendars' => 'Gemeinsam benutzte Kalender',
     'labels.subscribed_calendars' => 'Abonnements',
     'labels.refresh' => 'Aktualisieren',
@@ -277,6 +279,9 @@ $translations = [
     'rrule.nd' => '.',
     'rrule.rd' => '.',
     'rrule.th' => '.',
+
+    'messages.error_nocalendarselected' => 'Bitte mindestens einen Kalender auswählen',
+    'messages.error_eventpartiallysaved' => 'Der Termin konnte in diesen Kalendern nicht gespeichert werden',
 ];
 
 return $translations;

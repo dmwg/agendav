@@ -20,6 +20,8 @@
 <input name="location" type="text" size="25" maxlength="255" value="{location}" class="location form-control" />
 {>form_element_end/}
 
+{?uid}
+{! Existing event: a single calendar, as before (changing it moves the event) !}
 {>form_element_start for="calendar" label="calendar" /}
 <select name="calendar" class="form-control"{?fixed_calendar} disabled="disabled"{/fixed_calendar}>
 {#calendars current_calendar=calendar}
@@ -27,6 +29,30 @@
 {/calendars}
 </select>
 {>form_element_end/}
+{:else}
+{! New event: pick one or more calendars. The checkboxes have no name on
+   purpose, so they are not serialized; app.js sends one request per
+   checked calendar. !}
+{>form_element_start for="calendar_multiselect_toggle" label="calendars" /}
+<div class="dropdown calendar-multiselect">
+  <button type="button" id="calendar_multiselect_toggle" class="btn btn-default form-control dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+    <span class="selected-calendars"></span>
+    <span class="caret"></span>
+  </button>
+  <ul class="dropdown-menu" role="menu">
+  {#calendars current_calendar=calendar}
+    <li>
+      <label>
+        <input type="checkbox" class="calendar-choice" value="{url}" data-displayname="{displayname}" data-color="{?color}{color}{:else}{default_calendar_color}{/color}"{@eq key="{calendar}" value="{current_calendar}"} checked="checked"{/eq} />
+        <i class="fa fa-square" style="color: {?color}{color}{:else}{default_calendar_color}{/color}"></i>
+        <span class="text">{displayname}</span>
+      </label>
+    </li>
+  {/calendars}
+  </ul>
+</div>
+{>form_element_end/}
+{/uid}
 
 <div class="generate-iso8601" data-only-date-if-checked="input.allday">
 <input class="generated" type="hidden" name="start" id="start" />
