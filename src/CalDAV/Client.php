@@ -147,7 +147,7 @@ class Client
         $body = $this->xml_toolkit->generateRequestBody(
             'PROPFIND',
             [
-            //'{DAV:}group-membership',
+            '{DAV:}group-membership',
             '{http://calendarserver.org/ns/}calendar-proxy-write-for',
             '{http://calendarserver.org/ns/}calendar-proxy-read-for',
             ]
