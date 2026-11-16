@@ -1,7 +1,7 @@
 # AgenDAV - CalDAV web client
 
 [![Maintenance mode](https://img.shields.io/badge/maintenance_mode-%F0%9F%9A%A7-grey.svg?labelColor=orange)](https://github.com/agendav/agendav/#maintenance-mode)
-[![Build Status](https://img.shields.io/github/workflow/status/agendav/agendav/CI/main)](https://github.com/agendav/agendav/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/agendav/agendav/ci.yml?branch=main)](https://github.com/agendav/agendav/actions)
 [![Docs](https://readthedocs.org/projects/agendav/badge/?version=latest)](https://agendav.readthedocs.io/)
 [![Made With](https://img.shields.io/badge/made_with-php-blue)](https://github.com/agendav/agendav#requirements)
 [![License](https://img.shields.io/badge/license-gpl--3.0--or--later-blue.svg)](https://spdx.org/licenses/GPL-3.0-or-later.html)
@@ -12,22 +12,34 @@ users to manage their own calendars and shared ones.
 
 ![Screenshot](./docs/screenshot.png)
 
+## Features
+
+- Calendar views - Month, Week, Day, and List
+- Event management - create, edit, duplicate, and delete events
+- Drag and drop - move events to a new time slot or day, resize to adjust duration
+- Recurring events - create and edit repeating events with recurrence rules
+- Reminders - per-event reminders with a configurable default for new events
+- Calendar delegations - access calendars delegated by other users (read or read/write)
+- iCal subscriptions - subscribe to external iCal feeds
+- User preferences - each user may set language, timezone, week start, hide weekends and working hours
+- Auto-refresh - calendar data refreshes automatically every 5 minutes
+- Multi-language - localized UI with fallback to English
+- Multiple CalDAV backends - works with Baikal, DAViCal, Radicale, Nextcloud, and others
+- Multiple database backends - MySQL, PostgreSQL, SQLite
+
 ## Requirements
 
 AgenDAV requires:
 
-- A CalDAV server like [Baïkal](http://baikal-server.com/),
-  [DAViCal](http://www.davical.org/),
-  [Radicale](https://radicale.org/tutorial/), etc
 - A web server
-- PHP >= 7.2.0
+- PHP >= 8.5.0
 - PHP ctype extension
 - PHP mbstring extension
-- PHP mcrypt extension
 - PHP cURL extension
-- A database supported by
-  [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal/en/2.12/reference/configuration.html#configuration)
-  like MySQL, PostgreSQL, SQLite
+- A database supported by Doctrine-DBAL like MySQL, PostgreSQL, SQLite
+- A CalDAV server like [Baïkal](https://github.com/sabre-io/Baikal),
+  [DAViCal](https://www.davical.org/),
+  or [Radicale](https://radicale.org/)
 - Optional: nodejs & npm to build assets (releases include a build)
 
 ## Documentation
@@ -36,11 +48,18 @@ https://agendav.readthedocs.io/
 
 ## Installation
 
-See [installation guide](https://agendav.readthedocs.io/en/latest/admin/installation/)
+See [installation guide](https://agendav.readthedocs.io/en/latest/admin/index.html)
 
 ### Docker Image
 
-Agendav offers no official Docker image. However, you may use unofficial docker images provided by the community instead, for example https://ghcr.io/nagimov/agendav-docker.
+Agendav offers no official Docker image.
+
+A `docker-compose.yml` is provided in this repository for local development.
+It brings up AgenDAV (PHP-Apache, on port 8080), MariaDB, and a Baikal CalDAV
+server (on port 8081). Run `docker compose up` from the repository root: a
+one-shot `web-builder` service runs `npm ci`, `composer install`, and the
+asset build the first time (allow 1-2 minutes), then exits. Subsequent starts
+detect the existing build and skip it, so the stack comes up in a few seconds.
 
 ## Source
 

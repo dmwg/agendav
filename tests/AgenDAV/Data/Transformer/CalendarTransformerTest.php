@@ -9,13 +9,12 @@ use AgenDAV\CalDAV\Resource\Calendar;
 use AgenDAV\Data\Principal;
 use PHPUnit\Framework\TestCase;
 
-
 class CalendarTransformerTest extends TestCase
 {
     /** @var AgenDAV\CalDAV\Resource\Calendar */
     private $calendar;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->calendar = new Calendar(
             'http://test.url',
@@ -48,6 +47,7 @@ class CalendarTransformerTest extends TestCase
                 'is_shared' => false,
                 'owner' => '/owner/principal',
                 'is_owned' => true,
+                'is_subscribed' => false,
                 'writable' => true,
                 'shares' => [],
             ]
@@ -75,6 +75,7 @@ class CalendarTransformerTest extends TestCase
                 'is_shared' => true,
                 'owner' => '/owner/principal',
                 'is_owned' => false,
+                'is_subscribed' => false,
                 'writable' => true,
                 'shares' => [],
             ]

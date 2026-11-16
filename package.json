@@ -1,27 +1,30 @@
 {
   "name": "AgenDAV",
-  "version": "2.6.0",
+  "version": "3.3.1",
   "description": "A web CalDAV client",
   "directories": {
-    "doc": "doc",
+    "doc": "docs",
     "test": "tests"
   },
   "scripts": {
-    "clean": "rm -rf node_modules && rm -rf web/public/dist/js/* && rm -rf web/public/dist/css/*",
-    "composer": "cd web && composer install --no-dev --prefer-dist",
-    "composer-dev": "cd web && composer install --dev --prefer-source",
-    "build:templates": "dustc --pwd assets/templates -o assets/templates/templates.js assets/templates/*.dust",
-    "prebuild:css": "lessc assets/less/agendav.less web/public/dist/css/app.css",
-    "build:css": "cat web/public/dist/css/app.css assets/css/*.css | cleancss -o web/public/dist/css/agendav.css && cat assets/print-css/*.css | cleancss -o web/public/dist/css/agendav.print.css",
-    "prebuild:js": "uglifyjs assets/js/core/*.js assets/js/other/*.js assets/js/app/*.js assets/templates/templates.js -b -o web/public/dist/js/agendav.js",
-    "build:js": "uglifyjs web/public/dist/js/agendav.js -c -m -o web/public/dist/js/agendav.min.js",
-    "build": "npm run composer && npm run build:templates && npm run build:css && npm run build:js",
-    "dist-clean": "rm -rf node_modules && rm -rf .git && rm -rf ansible",
-    "dist": "npm run composer && npm run build:css && npm run build:js && npm run dist-clean"
+    "lint": "eclint check 'app/**' 'bin/**' 'config/**' 'resources/**' 'src/**' 'tests/**' '*.json' '*.md' '*.php' '*.yaml'",
+    "clean": "rm -rf node_modules && rm -rf resources/public/assets/dist/js/* && rm -rf resources/public/assets/dist/css/*",
+    "composer": "composer install --no-dev --prefer-dist",
+    "composer-dev": "composer install --dev --prefer-source",
+    "build:templates": "dustc --pwd resources/private/assets/templates -o resources/private/assets/templates/templates.js resources/private/assets/templates/*.dust",
+    "build:copy": "mkdir -p resources/public/assets/font/fa resources/public/assets/font/bootstrap resources/public/assets/fullcalendar-locale && cp node_modules/es5-shim/es5-shim.js resources/public/assets/dist/js/es5-shim.js && cp -r node_modules/font-awesome/fonts/. resources/public/assets/font/fa/ && cp -r node_modules/bootstrap/fonts/. resources/public/assets/font/bootstrap/ && cp -r node_modules/fullcalendar/dist/locale/. resources/public/assets/fullcalendar-locale/ && cp -r node_modules/jquery-ui/dist/themes/base/images/. resources/public/assets/dist/css/images/",
+    "prebuild:css": "lessc resources/private/assets/less/agendav.less resources/public/assets/dist/css/app.css",
+    "build:css": "cat resources/public/assets/dist/css/app.css node_modules/fullcalendar/dist/fullcalendar.css node_modules/jquery-ui/dist/themes/base/jquery-ui.css resources/private/assets/css/colorpicker.css resources/private/assets/css/freeow.css resources/private/assets/css/jquery.qtip.css resources/private/assets/css/jquery.timepicker.css | cleancss -o resources/public/assets/dist/css/agendav.css && cat node_modules/fullcalendar/dist/fullcalendar.print.css resources/private/assets/print-css/print.css | cleancss -o resources/public/assets/dist/css/agendav.print.css",
+    "prebuild:js": "uglifyjs node_modules/moment/moment.js node_modules/moment-timezone/builds/moment-timezone-with-data.min.js node_modules/jquery/dist/jquery.js node_modules/jquery-migrate/dist/jquery-migrate.js node_modules/bootstrap/js/button.js node_modules/bootstrap/js/tab.js node_modules/jquery-ui/dist/jquery-ui.js node_modules/fullcalendar/dist/fullcalendar.js node_modules/dustjs-linkedin/dist/dust-core.js node_modules/dustjs-helpers/dist/dust-helpers.js node_modules/rrule/dist/es5/rrule.js resources/private/assets/js/other/rrule-compat.js resources/private/assets/js/other/imagesloaded.pkg.min.js resources/private/assets/js/other/jquery.colorPicker.js resources/private/assets/js/other/jquery.freeow.min.js resources/private/assets/js/other/jquery.qtip.js resources/private/assets/js/other/jquery.serializeobject.js resources/private/assets/js/other/jquery.timepicker.js resources/private/assets/js/app/app.js resources/private/assets/js/app/datetime.js resources/private/assets/js/app/repeat-form.js resources/private/assets/templates/templates.js -b -o resources/public/assets/dist/js/agendav.js",
+    "build:js": "uglifyjs resources/public/assets/dist/js/agendav.js -c -m -o resources/public/assets/dist/js/agendav.min.js",
+    "build:assets": "npm run build:templates && npm run build:copy && npm run build:css && npm run build:js",
+    "build": "npm run composer && npm run build:assets",
+    "dist-clean": "rm -rf node_modules && rm -rf .git",
+    "dist": "npm run composer && npm run build:assets && npm run dist-clean"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/adobo/agendav.git"
+    "url": "https://github.com/agendav/agendav.git"
   },
   "keywords": [
     "CalDAV",
@@ -30,23 +33,30 @@
   "author": "Jorge López Pérez",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/adobo/agendav/issues"
+    "url": "https://github.com/agendav/agendav/issues"
   },
-  "homepage": "https://github.com/adobo/agendav",
+  "homepage": "https://github.com/agendav/agendav",
+  "engines": {
+    "node": ">=20.11.0"
+  },
   "devDependencies": {
-    "bootstrap": "~3.3.1",
+    "bootstrap": "~3.4.1",
     "clean-css": "~3.4.22",
-    "dustjs-helpers": "~1.7.0",
-    "dustjs-linkedin": "~2.7.1",
-    "es5-shim": "~4.0.5",
-    "font-awesome": "~4.2.0",
-    "fullcalendar": "~3.8.0",
-    "jquery": "~3.3.1",
-    "jquery-migrate": "~3.0.0",
-    "jquery-ui": "~1.12.1",
-    "less": "~2.7.1",
-    "moment-timezone": "~0.5.0",
-    "rrule": "~2.1.0",
-    "uglify-js": "~2.7.5"
+    "dustjs-helpers": "~1.7.3",
+    "dustjs-linkedin": "~2.7.5",
+    "eclint": "^2.8.1",
+    "editorconfig-checker": "^6.1.1",
+    "es5-shim": "~4.6.7",
+    "font-awesome": "~4.7.0",
+    "fullcalendar": "~3.10.5",
+    "jquery": "~3.7.1",
+    "jquery-migrate": "~3.0.1",
+    "jquery-ui": "^1.14.2",
+    "less": "~2.7.3",
+    "moment": "~2.30.1",
+    "moment-timezone": "~0.5.48",
+    "qtip2": "^2.2.0",
+    "rrule": "^2.8.1",
+    "uglify-js": "^3.19.3"
   }
 }

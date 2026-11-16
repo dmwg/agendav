@@ -11,15 +11,15 @@ class ToolkitTest extends TestCase
     protected $generator;
 
     /*
-     * Used to create bodies
-     */
+    * Used to create bodies
+    */
     public static $property_list = [
         'prop1',
         'prop2',
         'prop3',
     ];
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->parser = $this->createMock(Parser::class);
         $this->generator = $this->createMock(Generator::class);
@@ -42,11 +42,9 @@ class ToolkitTest extends TestCase
 
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
     public function testGenerateBodyUnsupportedRequest()
     {
+        $this->expectException(\InvalidArgumentException::class);
         $toolkit = $this->createToolkit();
         $toolkit->generateRequestBody('INVALID', 'test');
     }

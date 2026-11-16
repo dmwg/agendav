@@ -1,5 +1,86 @@
 # Changelog
 
+## [3.3.1] - 2026-07-02
+
+- BUGFIX Remove dead Transifex translations, document manual translation process (#370)
+- BUGFIX Add missing french translations (#369) - Thanks to @adri-M
+- BUGFIX Skip blocked proxied calendars (#368)
+- BUGFIX Skip blocked calendar events (#368)
+- BUGFIX Show warning icon on unreadable delegated calendars (#368) - Thanks to @adri-M
+- BUGFIX Strip redundant RRULE in recurring events (#367)
+- BUGFIX Replace empty-body probe in digest authentication (#191, #364)
+- BUGFIX Change cursor on all action links
+
+## [3.3.0] - 2026-06-29
+
+- FEATURE Display delegated / proxied calendars (#40) - Thanks to @tomabrafix
+- FEATURE Handle read-only calendars - hide action buttons and prevent writes
+- FEATURE Add DD.MM.YYYY date format option (#349)
+- FEATURE Add cache:clear and cache:purge CLI commands
+- FEATURE Replace preference action buttons
+- FEATURE Replace ext-sodium with ext-openssl for password encryption (#345)
+- FEATURE Show distinct error when CalDAV server URL is not a CalDAV endpoint
+- FEATURE Replace inline JS config with JSON to satisfy strict CSP policies (#358)
+- FEATURE Drop calendar-access requirement in authentication
+- BUGFIX Fix SSO/reverse-proxy setups broken by separate jssettings.js request - Thanks to @madtibo
+
+## [3.2.0] - 2026-06-09
+
+- FEATURE Add duplicate event action
+- FEATURE Add automatic calendar refresh every 5 minutes
+- FEATURE Add preference to hide weekends and working hours
+- FEATURE Add default reminder preference for new events
+- FEATURE Show full event title on hover
+- FEATURE Use English as fallback language
+- FEATURE Provide default settings template file
+- FEATURE Replace static frontend library copies with NPM packages
+- FEATURE Bump frontend dependencies (bootstrap, jquery, fullcalendar, moment)
+- FEATURE Consolidate public asset directories under single symlink
+- BUGFIX Remove duplicate sess_lifetime database migration
+
+## [3.1.1] - 2026-06-05
+
+- BUGFIX Fix middleware language order, using the users language preference (#340)
+- BUGFIX Fix missing sess_lifetime column in sessions table (#308)
+- BUGFIX Fix repetitions and keep removed events removed (#261)
+
+## [3.1.0] - 2026-06-04
+
+- FEATURE iCalendar URL subscription support (fixes #156)
+- FEATURE Allow to enable/disable iCal subscriptions per instance
+- FEATURE Add RFC 7986 color support for VEVENT objects
+- FEATURE Add Chinese (zh_CN) language
+- FEATURE Add stdout logging support (configurable in settings)
+- FEATURE Add Code Style Fixers
+- BUGFIX Events do not load in week view (#303)
+- BUGFIX Escape event title in modal to prevent XSS
+- BUGFIX Do not leak user data to ICS subscription target
+
+## [3.0.0] - 2026-06-02
+
+- FEATURE !! Drop support for PHP < 8.5
+  - Breaking: Upgrade to PHP 8.5
+- FEATURE !! Replace Silex 2 with Slim 4 + PHP-DI 7 - Thanks to @madtibo for the work on this!
+  - Breaking: Run `composer install` to update dependencies
+- FEATURE !! Flatten project structure and remove redundant web dir
+  - Breaking: Change web server document root from `web/public/` to `public/`
+  - Breaking: Move `web/config/settings.php` to `config/settings.php`
+  - Breaking: Clear the `var/` directory
+- FEATURE !! Move binary `agendavcli` to `bin/cli`
+  - Breaking: Change CLI command from `agendavcli` to `bin/agendavcli`
+- FEATURE !! Upgrade Symfony and ORM components
+  - Breaking: Run database migrations `bin/agendavcli migrations:migrate`
+  - Breaking: Dropped support for `url` shorthand config in `db.options`,
+    replace with explicit `driver`, `host`, `dbname`, `user`, `password` keys (see example in `default.settings.php`)
+- FEATURE Modernize test framework PHPUnit 5 → 9.6
+- FEATURE Drop the `mcrypt` Ansible/php.ini references (extension removed since PHP 7.2)
+- FEATURE Drop PHP versions in CI, remove Travis
+- FEATURE Add docker stack for local development
+- TASK Drop vagrant stack for local development
+- FEATURE Move path options from prod.php to default.settings.php
+- FEATURE Render unknown routes as a proper 404 instead of a 500 error page
+- TASK Update upgrade & installation docs
+
 ## [2.6.0] - 2022-11-10
 
 - FEATURE Docs: Replace outdated badge links
@@ -353,4 +434,3 @@ This is a beta release. Calendar sharing is not available.
 - Dialogs have now icons within buttons to make them clearer
 - Several bugfixes and optimizations
 - Changed to perifer timePicker (resembles Google Calendar timepicker)
-

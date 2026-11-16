@@ -31,8 +31,8 @@ class SharesDiffTest extends TestCase
     }
 
     /**
-     * Test what happens when we have N existing shares and we add one more
-     */
+    * Test what happens when we have N existing shares and we add one more
+    */
     public function testAddNewShare()
     {
         $input = $this->generateShares(5);
@@ -51,8 +51,8 @@ class SharesDiffTest extends TestCase
     }
 
     /**
-     * Test what happens when we have N existing shares and we remove one from them
-     */
+    * Test what happens when we have N existing shares and we remove one from them
+    */
     public function testRemoveOneShare()
     {
         $existing = $this->generateShares(5);
@@ -77,10 +77,10 @@ class SharesDiffTest extends TestCase
     }
 
     /**
-     * Test what happens when we have N existing shares and we alter one of them.
-     *
-     * It should not remove any of the existing shares but modify the original one
-     */
+    * Test what happens when we have N existing shares and we alter one of them.
+    *
+    * It should not remove any of the existing shares but modify the original one
+    */
     public function testAlterOneShare()
     {
         $existing = $this->generateShares(3);
@@ -104,11 +104,11 @@ class SharesDiffTest extends TestCase
     }
 
     /**
-     * Test what happens when we have N existing shares and we:
-     *  1) Add a new share
-     *  2) Alter an existing share
-     *  3) Remove an existing share
-     */
+    * Test what happens when we have N existing shares and we:
+    *  1) Add a new share
+    *  2) Alter an existing share
+    *  3) Remove an existing share
+    */
     public function testAddRemoveAndAlter()
     {
         $existing = $this->generateShares(4);
@@ -141,19 +141,19 @@ class SharesDiffTest extends TestCase
 
 
     /**
-     * Generates N shares
-     *
-     * @param int $n Number of shares
-     * @param int $start Nunber to start
-     * @return \AgenDAV\Data\Share[]
-     */
+    * Generates N shares
+    *
+    * @param int $n Number of shares
+    * @param int $start Nunber to start
+    * @return \AgenDAV\Data\Share[]
+    */
     protected function generateShares($n, $start = 0)
     {
         $with = '/with';
         $result = [];
 
         $total = $start + $n;
-        for($i=$start;$i<$total;$i++) {
+        for ($i=$start;$i<$total;$i++) {
             $share = new Share;
             $share->setWith($with . '-' . $i);
             $share->setCalendar('/calendar');
@@ -167,15 +167,15 @@ class SharesDiffTest extends TestCase
     }
 
     /**
-     * @return bool
-     */
+    * @return bool
+    */
     protected function assertAllObjectsAreEqual(array $first, array $second)
     {
         if (count($first) != count($second)) {
             return false;
         }
 
-        $diff = array_udiff($second, $first, function(Share $s1, Share $s2) {
+        $diff = array_udiff($second, $first, function (Share $s1, Share $s2) {
             if ($s1->getWith() == $s2->getWith() && $s1->isWritable() === $s2->isWritable()) {
                 return 0;
             }

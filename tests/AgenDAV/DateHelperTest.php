@@ -6,20 +6,18 @@ use PHPUnit\Framework\TestCase;
 class DateHelperTest extends TestCase
 {
     /**
-     * UTC timezone, cached
-     */
+    * UTC timezone, cached
+    */
     private $utc;
 
-    public function __construct()
+    public function setUp(): void
     {
         $this->utc = new \DateTimeZone('UTC');
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     */
     public function testCreateDateTimeFail()
     {
+        $this->expectException(\InvalidArgumentException::class);
         $dt = DateHelper::createDateTime('m/d/Y H:i', '99/99/99 99:99', $this->utc);
     }
 
@@ -61,6 +59,13 @@ class DateHelperTest extends TestCase
         $dt = DateHelper::fullcalendarToDateTime($str, $this->utc);
 
         $expected = new \DateTimeImmutable('2012-10-07 00:00:00', $this->utc);
+
+        $this->assertEquals($expected, $dt);
+
+        $str = '2023-06-05T00:00:00';
+        $dt = DateHelper::fullcalendarToDateTime($str, $this->utc);
+
+        $expected = new \DateTimeImmutable('2023-06-05 00:00:00', $this->utc);
 
         $this->assertEquals($expected, $dt);
     }

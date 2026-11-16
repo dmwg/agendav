@@ -26,26 +26,43 @@ implement it.
 
 ## Translation
 
-AgenDAV uses [Transifex](https://www.transifex.com/adobo/agendav/) for translations.
-
-Have a look at [Transifex documentation](http://docs.transifex.com/) for more information about
-adding a new language or upadting an existing translation.
+Translation files are PHP files in `resources/private/lang/`. The English file
+`en.php` is the source of truth - compare against it when adding or updating a
+translation. To add a new language, copy `en.php` to `<locale>.php` and translate
+the string values, keeping the PHP array key names unchanged.
 
 ## Documentation
 
 Documentation is automatically generated and placed on https://agendav.readthedocs.io/.
-Updating the documentation requires some [Sphinx](http://sphinx-doc.org/) knowledge.
 
-Have a look at the `doc/` directory.
+All documentation is written in reStructuredText format and stored in the `docs/source/` directory.
 
 ## Contributing code
 
 There are some facts that will help you when contributing code to AgenDAV:
 
-* AgenDAV ships with a [Vagrant environment](https://agendav.readthedocs.io/en/latest/development/#virtual-machine)
-  that is absolutely recommended when developing
-* AgenDAV includes unit tests as well, run via `./web/vendor/bin/phpunit tests`
-* AgenDAV repository uses [nvie's git flow](http://nvie.com/posts/a-successful-git-branching-model/)
+- A docker development instance is provided with AgenDAV
+  and Baikal as CalDAV server. Run `docker compose up`
+  from the repository root to start it up.
+  - A `web-builder` service runs `npm install`, `composer install`,
+    and the asset build on first start, then exits.
+  - AgenDAV is then served at <http://localhost:8080> and Baikal at
+    <http://localhost:8081>.
+  - The example calendar is named `default`, and the calendar URL is
+    `http://localhost:8081/cal.php/calendars/admin/default/`
+  - The user for AgendDav is `test` and the password is `test`.
+  - The credentials for the Baikal server are `admin` / `admin`.
+- Run `bash docker/reset-events.sh` to populate the calendar with example
+  events (1-hour, 4-hour, concurrent, all-day, overnight, multi-day,…).
+  This removes any existing events in the container!
+- `bash docker/smoke-test.sh` brings the stack up and runs an
+  end-to-end regression check covering login, calendar/event CRUD against
+  Baikal, preferences persistence, CSRF, 404 handling, and HTTP Basic auth.
+  Run it before submitting a PR.
+- Use the projects base PHP version, stored in the [.php-version](https://packagist.org/packages/webit-de/php-version-pickup)
+  file (or run `php-version-pickup use`)
+- AgenDAV includes unit tests as well, run via `./vendor/bin/phpunit tests`
+- AgenDAV repository uses [nvie's git flow](http://nvie.com/posts/a-successful-git-branching-model/)
 
 ### Pull requests
 
@@ -76,35 +93,37 @@ All notable changes made between each release are documented in the
 
 ### New Releases
 
-Manual release steps done by project maintainers.
+Manual release steps done by project maintainers. The base PHP version and
+docker/smoke-test prerequisites are the same as described in
+[Contributing code](#contributing-code) above.
 
 - Checkout latest »development« branch and rebase against »main«
-- Use the projects base PHP version, stored in the
-  [.php-version](https://packagist.org/packages/webit-de/php-version-pickup)
-  file (or run `php-version-pickup use`)
-- Create test build runing `npm install && npm run-script build`
-- Run code quality tools
 - Compare the »development« branch to »main«
   - Add a list of noteworthy features and bugfixes to CHANGELOG.md
   - Describe breaking changes in CHANGELOG.md
-  - Describe changes in `doc/source/releasenotes.rst` as well
+  - Describe changes in `docs/source/releasenotes.rst` as well
 - Change the version, using semantic versioning, in these files:
-  - `doc/source/conf.py`
+  - `docs/source/conf.py`
   - `package.json`
-  - `web/src/Version.php`
-- Run some manual test in the Vagrant box
+  - `src/Version.php`
+- Run `composer lint` (eclint + php-cs-fixer) to check code style
+- Run `bash docker/smoke-test.sh` to verify the stack; this already builds
+  the frontend assets as part of bringing the stack up
 - Create a release commit
   ([example commit](https://github.com/agendav/agendav/commit/7d2f1bba00deb090943f14bf9c47c4a6ac4d1387))
 - Merge »development« branch to »main«
 - Tag the »main« branch with the new version
 - Push branch and tag
-- Update the documentation & website
-- Add release download file to release page ([example file](https://github.com/agendav/agendav/releases/tag/2.2.0))
+- Update the documentation
+  - Run a new release in [ReadTheDocs](https://readthedocs.org/projects/agendav/builds/)
+- Build and upload the release download file
   - Clone the git repository using
     `git clone -b <version> https://github.com/agendav/agendav.git agendav-<version>`
-  - Run `npm install && npm run-script dist`
-    - Creates build files in `web/public/dist/css/`, `web/public/dist/js/`
-      and `web/vendor/`
-    - Removes `.git`, `ansible`, `node_modules`
+  - Prepare the build version scripts `nvm use && php-version-pickup use`
+  - Run `npm ci && npm run dist`
+    - Creates build files in `public/dist/css/`, `public/dist/js/`
+      and `vendor/`
+    - Removes `.git`, `node_modules`
   - Zip directory `tar -czf ../agendav-<version>.tar.gz ../agendav-<version>`
+  - Upload release file ([example file](https://github.com/agendav/agendav/releases/tag/3.2.0))
 - Sip a tea

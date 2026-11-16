@@ -8,7 +8,7 @@ use AgenDAV\Event\RecurrenceId;
 use PHPUnit\Framework\TestCase;
 use Mockery as m;
 
-class VObjectBuilderTest  extends TestCase
+class VObjectBuilderTest extends TestCase
 {
     const INPUT_DATETIME_FORMAT = 'Y-m-d\TH:i:s.u\Z';
 
@@ -18,14 +18,10 @@ class VObjectBuilderTest  extends TestCase
 
     protected $builder;
 
-    public function __construct()
+    public function setUp(): void
     {
         $this->utc = new \DateTimeZone('UTC');
         $this->timezone = new \DateTimeZone('Europe/Madrid');
-    }
-
-    public function setUp()
-    {
         $this->builder = new VObjectBuilder($this->timezone);
     }
 
@@ -82,6 +78,7 @@ class VObjectBuilderTest  extends TestCase
             'class' => 'PRIVATE',
             'transp' => 'OPAQUE',
             'rrule' => 'FREQ=DAILY',
+            'color' => 'peachpuff',
         ];
 
         $instance = $this->builder->createEventInstanceWithInput(
@@ -102,6 +99,7 @@ class VObjectBuilderTest  extends TestCase
         $this->assertEquals($input['class'], $instance->getClass());
         $this->assertEquals($input['transp'], $instance->getTransp());
         $this->assertEquals($input['rrule'], $instance->getRepeatRule());
+        $this->assertEquals($input['color'], $instance->getColor());
     }
 
     public function testCreateEventInstanceWithInputAllDay()

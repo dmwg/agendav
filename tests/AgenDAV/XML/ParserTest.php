@@ -76,21 +76,18 @@ EOBODY;
         );
     }
 
-    /**
-     * @expectedException \Sabre\Xml\LibXMLException
-     */
-
     public function testInvalidXML()
     {
+        $this->expectException(\Sabre\Xml\LibXMLException::class);
         $parser = new Parser();
         $parser->extractPropertiesFromMultistatus('this is clearly not an xml document');
     }
 
 
     /*
-     * Tests that <resourcetype> get converted into a Sabre\DAV\Property\ResourceType
-     * object
-     */
+    * Tests that <resourcetype> get converted into a Sabre\DAV\Property\ResourceType
+    * object
+    */
     public function testResourceTypeClass()
     {
         $body = <<<EOBODY

@@ -4,23 +4,32 @@
 .AppleDouble
 .LSOverride
 
-/var/logs/
-/doc/build
-/web/vendor
-
-# Vagrant
-/.vagrant
-/vagrant_ansible_inventory_default
+/docs/build
+/var/*
+!/var/.gitkeep
+/vendor
 
 *.phar
 *.sqlite
 
+# PHPUnit
+/tests/.phpunit.result.cache
+
+# PHP CS Fixer
+.php-cs-fixer.cache
+
 agendav-built*
-web/public/dist/css/*.css
-web/public/dist/js/*.js
+resources/public/assets/dist/css/*.css
+resources/public/assets/dist/js/*.js
+resources/public/assets/dist/css/images/
+resources/public/assets/img/jquery-ui/
+resources/public/assets/font/
+resources/public/assets/fullcalendar-locale/
+public/test-calendar.ics
 
 # Configuration file
-/web/config/settings*
+/config/settings*
+!/config/settings.template.php
 
 # Development
 /node_modules/

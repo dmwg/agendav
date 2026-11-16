@@ -14,31 +14,32 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        php-version:
-          - "7.2"
-          - "7.3"
-          - "7.4"
-          - "8.0"
-          - "8.1"
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: '8.5'
           coverage: none
 
       - name: Validate composer.json and composer.lock
-        run: composer validate --strict --working-dir=web/
+        run: composer validate --strict
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress --working-dir=web/
+        run: composer install --prefer-dist --no-progress
+
+      - name: Audit dependencies for known vulnerabilities
+        run: composer audit --locked
+
+      # All npm packages are devDependencies (build-time tooling only — they
+      # never reach the runtime image). Surfaced on every PR for visibility;
+      # continue-on-error so legacy advisories on jquery 3.3.1 / bootstrap 3
+      # don't block unrelated work until those are bumped.
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
+        continue-on-error: true
 
       - name: Run test suite
-        run: ./web/vendor/bin/phpunit tests
+        run: ./vendor/bin/phpunit -c tests/phpunit.xml

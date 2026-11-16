@@ -13,7 +13,7 @@ class ShareTest extends TestCase
 
         // Tricky
         $set_options_null = \Closure::bind(function (Share $share) {
-                $share->options = null;
+            $share->options = null;
         }, null, '\AgenDAV\Data\Share');
 
         $set_options_null($share);
@@ -28,7 +28,8 @@ class ShareTest extends TestCase
 
     public function testApplyCustomPropertiesTo()
     {
-        $calendar = new Calendar('/calendar/url',
+        $calendar = new Calendar(
+            '/calendar/url',
             [
                 Calendar::DISPLAYNAME => 'Original displayname',
             ]
@@ -54,11 +55,12 @@ class ShareTest extends TestCase
         );
     }
 
-    // Just make sure there are no errors
     public function testReplaceOldPropertiesNothingHappens()
     {
-        $share = new Share;
+        // Just make sure there are no errors
+        $this->expectNotToPerformAssertions();
 
+        $share = new Share;
         $share->replaceOldProperties();
     }
 

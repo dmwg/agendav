@@ -13,7 +13,7 @@ class VObjectHelperTest extends TestCase
 {
     protected $vcalendar;
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->vcalendar = new VCalendar;
     }
@@ -69,9 +69,9 @@ class VObjectHelperTest extends TestCase
     }
 
     /**
-     * Issue #159: setBaseVEvent replaces iCalendar properties (e.g. VERSION)
-     * with the base VEVENT, and it should not
-     */
+    * Issue #159: setBaseVEvent replaces iCalendar properties (e.g. VERSION)
+    * with the base VEVENT, and it should not
+    */
     public function testSetBaseVEventIssue159()
     {
         $vevent = $this->vcalendar->create('VEVENT');
@@ -125,7 +125,8 @@ class VObjectHelperTest extends TestCase
 
         $this->assertEquals(
             VObjectHelper::findExceptionVEvent(
-                $this->vcalendar, RecurrenceId::buildFromString('20150302T184900Z')
+                $this->vcalendar,
+                RecurrenceId::buildFromString('20150302T184900Z')
             ),
             $new_exception,
             'VEVENT exceptions are not added'
@@ -140,7 +141,8 @@ class VObjectHelperTest extends TestCase
 
         $this->assertEquals(
             VObjectHelper::findExceptionVEvent(
-                $this->vcalendar, RecurrenceId::buildFromString('20150302T184900Z')
+                $this->vcalendar,
+                RecurrenceId::buildFromString('20150302T184900Z')
             ),
             $modified_exception,
             'VEVENT exceptions are not replaced'
@@ -204,9 +206,9 @@ class VObjectHelperTest extends TestCase
     }
 
     /**
-     * Internal function, used to add a base VEVENT and two exceptions
-     * to the test VCALENDAR
-     */
+    * Internal function, used to add a base VEVENT and two exceptions
+    * to the test VCALENDAR
+    */
     protected function addBaseEventAndExceptions()
     {
         $this->vcalendar->add('VEVENT', [

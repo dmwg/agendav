@@ -29,14 +29,14 @@ class ClientTest extends TestCase
         $client->addHeader('Test-Header', 'Additional value');
         $this->assertEquals(
             $client->getHeader('Test-Header'),
-            array('Second value', 'Additional value')
+            ['Second value', 'Additional value']
         );
 
         // Add one more value to the header
         $client->addHeader('Test-Header', 'One more additional value');
         $this->assertEquals(
             $client->getHeader('Test-Header'),
-            array('Second value', 'Additional value', 'One more additional value')
+            ['Second value', 'Additional value', 'One more additional value']
         );
 
         // addHeader for non-defined header
@@ -61,12 +61,9 @@ class ClientTest extends TestCase
         );
     }
 
-    /**
-     * Should throw an exception
-     * @expectedException AgenDAV\Exception\NotAuthenticated
-     */
     public function test401()
     {
+        $this->expectException(\AgenDAV\Exception\NotAuthenticated::class);
         $client = $this->createClient([
             new Response(401)
         ]);
@@ -74,36 +71,29 @@ class ClientTest extends TestCase
         $client->request('GET', '/');
     }
 
-    /**
-     * Should throw an exception
-     * @expectedException AgenDAV\Exception\PermissionDenied
-     */
     public function test403()
     {
+        $this->expectException(\AgenDAV\Exception\PermissionDenied::class);
         $client = $this->createClient([
             new Response(403)
         ]);
 
         $client->request('GET', '/');
     }
-    /**
-     * Should throw an exception
-     * @expectedException AgenDAV\Exception\NotFound
-     */
+
     public function test404()
     {
+        $this->expectException(\AgenDAV\Exception\NotFound::class);
         $client = $this->createClient([
             new Response(404)
         ]);
 
         $client->request('GET', '/');
     }
-    /**
-     * Should throw an exception
-     * @expectedException AgenDAV\Exception\ElementModified
-     */
+
     public function test412()
     {
+        $this->expectException(\AgenDAV\Exception\ElementModified::class);
         $client = $this->createClient([
             new Response(412)
         ]);
@@ -129,6 +119,31 @@ class ClientTest extends TestCase
             isset($headers['Test-Header']),
             'Headers are not cleaned after a request'
         );
+    }
+
+    public function testDigestAuthBypassesGuzzleAuthOptions()
+    {
+        $guzzle = new GuzzleClient();
+        $client = new Client($guzzle);
+        $client->setAuthentication('user', 'pass', 'digest');
+
+        $options = (new \ReflectionProperty(Client::class, 'options'))->getValue($client);
+
+        $this->assertSame(\CURLAUTH_ANY, $options['curl'][\CURLOPT_HTTPAUTH]);
+        $this->assertSame('user:pass', $options['curl'][\CURLOPT_USERPWD]);
+        $this->assertArrayNotHasKey('auth', $options);
+    }
+
+    public function testBasicAuthUsesGuzzleAuthOptions()
+    {
+        $guzzle = new GuzzleClient();
+        $client = new Client($guzzle);
+        $client->setAuthentication('user', 'pass', 'basic');
+
+        $options = (new \ReflectionProperty(Client::class, 'options'))->getValue($client);
+
+        $this->assertSame(['user', 'pass', 'basic'], $options['auth']);
+        $this->assertArrayNotHasKey('curl', $options);
     }
 
     protected function createClient(array $mocked_responses)

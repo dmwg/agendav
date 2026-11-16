@@ -28,10 +28,11 @@ class VObjectEventInstanceTest extends TestCase
         'TRANSP' => 'OPAQUE',
         'RRULE' => 'FREQ=MONTHLY',
         'RECURRENCE-ID' => '20150109T123456Z',
+        'COLOR' => 'peachpuff',
         'SEQUENCE' => '2',
     ];
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->vcalendar = new VCalendar;
         $this->now = new \DateTimeImmutable('2015-01-09 01:23:45');
@@ -184,10 +185,12 @@ class VObjectEventInstanceTest extends TestCase
         $vevent = $this->vcalendar->add('VEVENT', [
             'SUMMARY' => 'Test summary',
             'LOCATION' => 'Test location',
+            'COLOR' => 'peachpuff',
         ]);
         $instance = new VObjectEventInstance($vevent);
         $instance->setSummary('New summary');
         $instance->setLocation('');
+        $instance->setColor('navajowhite');
         $this->assertEquals(
             'New summary',
             $instance->getSummary()
@@ -195,6 +198,10 @@ class VObjectEventInstanceTest extends TestCase
         $this->assertEquals(
             '',
             $instance->getLocation()
+        );
+        $this->assertEquals(
+            'navajowhite',
+            $instance->getColor()
         );
     }
 
@@ -209,6 +216,28 @@ class VObjectEventInstanceTest extends TestCase
         $instance->setStart($this->today_utc, true);
         $this->assertEquals($this->today_utc, $instance->getStart(), 'UTC');
         $this->assertTrue($instance->isAllDay());
+    }
+
+    public function testSetStartShiftsExdates()
+    {
+        $start = new \DateTimeImmutable('2025-01-10 10:00:00', new \DateTimeZone('UTC'));
+        $exdate = new \DateTimeImmutable('2025-01-15 10:00:00', new \DateTimeZone('UTC'));
+        $vevent = $this->vcalendar->add('VEVENT', [
+            'DTSTART' => $start,
+            'RRULE' => 'FREQ=DAILY',
+        ]);
+        $vevent->add('EXDATE', [$exdate]);
+
+        $instance = new VObjectEventInstance($vevent);
+        $new_start = new \DateTimeImmutable('2025-01-10 10:30:00', new \DateTimeZone('UTC'));
+        $instance->setStart($new_start);
+
+        $exdates = $vevent->EXDATE->getDateTimes();
+        $this->assertCount(1, $exdates);
+        $this->assertEquals(
+            new \DateTimeImmutable('2025-01-15 10:30:00', new \DateTimeZone('UTC')),
+            $exdates[0]
+        );
     }
 
     public function testSetEnd()
@@ -292,7 +321,8 @@ class VObjectEventInstanceTest extends TestCase
         // copyPropertiesFrom should not copy RRULE
         $this->assertEmpty(
             $instance_2->getRepeatRule(),
-            'RRULE should not be set when copying properties on recurrence exceptions');
+            'RRULE should not be set when copying properties on recurrence exceptions'
+        );
     }
 
     public function testGetReminders()
@@ -312,9 +342,9 @@ class VObjectEventInstanceTest extends TestCase
     }
 
     /**
-     * Tests a TRIGGER:0PTS VALARM, which is an alarm set to
-     * 'when the start events' by some CalDAV clients
-     */
+    * Tests a TRIGGER:0PTS VALARM, which is an alarm set to
+    * 'when the start events' by some CalDAV clients
+    */
     public function testGetRemindersOnStart()
     {
         $ics = <<<ICS
@@ -512,6 +542,7 @@ ICS;
         } else {
             $this->assertEquals('FREQ=MONTHLY', $instance->getRepeatRule());
         }
+        $this->assertEquals('peachpuff', $instance->getColor());
     }
 
     protected function setSomeVAlarms(VEvent $vevent)

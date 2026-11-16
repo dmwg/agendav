@@ -3,7 +3,7 @@
 namespace AgenDAV\CalDAV;
 
 use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Stream\Stream;
+use GuzzleHttp\Psr7\Utils;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\Middleware;
@@ -44,7 +44,7 @@ class ClientTest extends TestCase
     protected $event_parser;
 
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->xml_generator = new Generator();
         $this->xml_parser = new Parser();
@@ -73,22 +73,31 @@ class ClientTest extends TestCase
 
     public function testCanAuthenticate()
     {
-        // #1 Test an authentication failure
         $response = new Response(200, ['DAV' => '1, 3, extended-mkcol, access-control, calendarserver-principal-property-search, calendar-access, calendar-proxy']);
         $caldav_client = $this->createCalDAVClient($response);
 
-        $this->assertTrue($caldav_client->canAuthenticate(), 'canAuthenticate() does not work');
+        $this->assertTrue($caldav_client->canAuthenticate(), 'canAuthenticate() should return true');
         $this->validateCheckAuthenticatedRequests();
     }
 
-    /** @expectedException \AgenDAV\Exception\NotFound */
+    public function testCanAuthenticateWithoutCalendarAccess()
+    {
+        // Nextcloud 33+ no longer advertises calendar-access in the DAV header
+        $response = new Response(200, ['DAV' => '1, 3, extended-mkcol, access-control, calendarserver-principal-property-search, nc-paginate, nextcloud-checksum-update']);
+        $caldav_client = $this->createCalDAVClient($response);
+
+        $this->assertTrue($caldav_client->canAuthenticate(), 'canAuthenticate() should not require calendar-access');
+        $this->validateCheckAuthenticatedRequests();
+    }
+
     public function testGetCurrentUserPrincipalNotFound()
     {
+        $this->expectException(\AgenDAV\Exception\NotFound::class);
         $body = <<<BODY
 <?xml version="1.0" encoding="utf-8"?>
 <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/"></d:multistatus>
 BODY;
-        $response = new Response(207, [], Stream::factory($body));
+        $response = new Response(207, [], Utils::streamFor($body));
         $caldav_client = $this->createCalDAVClient($response);
 
         $caldav_client->getCurrentUserPrincipal();
@@ -102,17 +111,17 @@ BODY;
   <d:response>
     <d:href>/cal.php/</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <d:current-user-principal>
-          <d:href>/cal.php/principals/demo/</d:href>
+        <d:href>/cal.php/principals/demo/</d:href>
         </d:current-user-principal>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
   </d:response>
 </d:multistatus>
 BODY;
-        $response = new Response(207, [], Stream::factory($body));
+        $response = new Response(207, [], Utils::streamFor($body));
         $caldav_client = $this->createCalDAVClient($response);
 
         $this->assertEquals(
@@ -127,14 +136,14 @@ BODY;
         );
     }
 
-    /** @expectedException \AgenDAV\Exception\NotFound */
     public function testGetCalendarHomeSetNotFound()
     {
+        $this->expectException(\AgenDAV\Exception\NotFound::class);
         $body = <<<BODY
 <?xml version="1.0" encoding="utf-8"?>
 <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/"></d:multistatus>
 BODY;
-        $response = new Response(207, [], Stream::factory($body));
+        $response = new Response(207, [], Utils::streamFor($body));
         $caldav_client = $this->createCalDAVClient($response);
 
         $caldav_client->getCalendarHomeSet(new Principal('/principal/url'));
@@ -148,17 +157,17 @@ BODY;
   <d:response>
     <d:href>/cal.php/principals/demo/</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <cal:calendar-home-set>
-          <d:href>/cal.php/calendars/demo/</d:href>
+        <d:href>/cal.php/calendars/demo/</d:href>
         </cal:calendar-home-set>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
   </d:response>
 </d:multistatus>
 BODY;
-        $response = new Response(207, [], Stream::factory($body));
+        $response = new Response(207, [], Utils::streamFor($body));
         $caldav_client = $this->createCalDAVClient($response);
 
         $calendar_home_set = $caldav_client->getCalendarHomeSet(new Principal('/principal/url'));
@@ -181,94 +190,94 @@ BODY;
   <d:response>
     <d:href>/cal.php/calendars/demo/</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <d:resourcetype>
-          <d:collection/>
+        <d:collection/>
         </d:resourcetype>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <d:displayname/>
         <cs:getctag/>
         <cal:supported-calendar-component-set/>
         <x4:calendar-color xmlns:x4="http://apple.com/ns/ical/"/>
         <x4:calendar-order xmlns:x4="http://apple.com/ns/ical/"/>
-      </d:prop>
-      <d:status>HTTP/1.1 404 Not Found</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 404 Not Found</d:status>
     </d:propstat>
   </d:response>
   <d:response>
     <d:href>/cal.php/calendars/demo/first/</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <d:displayname>First calendar</d:displayname>
         <cs:getctag>44</cs:getctag>
         <cal:supported-calendar-component-set>
-          <cal:comp name="VEVENT"/>
-          <cal:comp name="VTODO"/>
+        <cal:comp name="VEVENT"/>
+        <cal:comp name="VTODO"/>
         </cal:supported-calendar-component-set>
         <x4:calendar-color xmlns:x4="http://apple.com/ns/ical/">#ff4e50ff</x4:calendar-color>
         <d:resourcetype>
-          <d:collection/>
-          <cal:calendar/>
+        <d:collection/>
+        <cal:calendar/>
         </d:resourcetype>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <x4:calendar-order xmlns:x4="http://apple.com/ns/ical/"/>
-      </d:prop>
-      <d:status>HTTP/1.1 404 Not Found</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 404 Not Found</d:status>
     </d:propstat>
   </d:response>
   <d:response>
     <d:href>/cal.php/calendars/demo/second/</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <d:displayname>Second calendar</d:displayname>
         <cs:getctag>15</cs:getctag>
         <cal:supported-calendar-component-set>
-          <cal:comp name="VEVENT"/>
-          <cal:comp name="VTODO"/>
+        <cal:comp name="VEVENT"/>
+        <cal:comp name="VTODO"/>
         </cal:supported-calendar-component-set>
         <x4:calendar-color xmlns:x4="http://apple.com/ns/ical/">#3e4147ff</x4:calendar-color>
         <d:resourcetype>
-          <d:collection/>
-          <cal:calendar/>
+        <d:collection/>
+        <cal:calendar/>
         </d:resourcetype>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <x4:calendar-order xmlns:x4="http://apple.com/ns/ical/"/>
-      </d:prop>
-      <d:status>HTTP/1.1 404 Not Found</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 404 Not Found</d:status>
     </d:propstat>
   </d:response>
   <d:response>
     <d:href>/cal.php/calendars/demo/outbox/</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <d:resourcetype>
-          <d:collection/>
-          <cal:schedule-outbox/>
+        <d:collection/>
+        <cal:schedule-outbox/>
         </d:resourcetype>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <d:displayname/>
         <cs:getctag/>
         <cal:supported-calendar-component-set/>
         <x4:calendar-color xmlns:x4="http://apple.com/ns/ical/"/>
         <x4:calendar-order xmlns:x4="http://apple.com/ns/ical/"/>
-      </d:prop>
-      <d:status>HTTP/1.1 404 Not Found</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 404 Not Found</d:status>
     </d:propstat>
   </d:response>
 </d:multistatus>
@@ -276,7 +285,7 @@ BODY;
         $response = new Response(
             207,
             [],
-            Stream::factory($body)
+            Utils::streamFor($body)
         );
 
         $client = $this->createCalDAVClient($response);
@@ -301,16 +310,17 @@ BODY;
         $this->assertEquals('#3e4147ff', $second_calendar->getProperty(Calendar::COLOR));
 
         $this->validatePropfindRequest(
-          [
+            [
             '{DAV:}resourcetype',
             '{DAV:}displayname',
+            '{DAV:}current-user-privilege-set',
             '{http://calendarserver.org/ns/}getctag',
             '{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set',
             '{http://apple.com/ns/ical/}calendar-color',
             '{http://apple.com/ns/ical/}calendar-order',
-          ],
-          '/calendar-home',
-          1
+        ],
+            '/calendar-home',
+            1
         );
     }
 
@@ -322,26 +332,26 @@ BODY;
   <d:response>
     <d:href>/cal.php/calendars/demo/single/</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <d:displayname>First calendar</d:displayname>
         <cs:getctag>44</cs:getctag>
         <cal:supported-calendar-component-set>
-          <cal:comp name="VEVENT"/>
-          <cal:comp name="VTODO"/>
+        <cal:comp name="VEVENT"/>
+        <cal:comp name="VTODO"/>
         </cal:supported-calendar-component-set>
         <x4:calendar-color xmlns:x4="http://apple.com/ns/ical/">#ff4e50ff</x4:calendar-color>
         <d:resourcetype>
-          <d:collection/>
-          <cal:calendar/>
+        <d:collection/>
+        <cal:calendar/>
         </d:resourcetype>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <x4:calendar-order xmlns:x4="http://apple.com/ns/ical/"/>
-      </d:prop>
-      <d:status>HTTP/1.1 404 Not Found</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 404 Not Found</d:status>
     </d:propstat>
   </d:response>
 </d:multistatus>
@@ -349,7 +359,7 @@ BODY;
         $response = new Response(
             207,
             [],
-            Stream::factory($body)
+            Utils::streamFor($body)
         );
 
         $client = $this->createCalDAVClient($response);
@@ -367,16 +377,17 @@ BODY;
         $this->assertEquals('#ff4e50ff', $calendar->getProperty(Calendar::COLOR));
 
         $this->validatePropfindRequest(
-          [
+            [
             '{DAV:}resourcetype',
             '{DAV:}displayname',
+            '{DAV:}current-user-privilege-set',
             '{http://calendarserver.org/ns/}getctag',
             '{urn:ietf:params:xml:ns:caldav}supported-calendar-component-set',
             '{http://apple.com/ns/ical/}calendar-color',
             '{http://apple.com/ns/ical/}calendar-order',
-          ],
-          $fake_calendar_url,
-          0
+        ],
+            $fake_calendar_url,
+            0
         );
 
         // Reuse this test for getCalendarByUrl
@@ -386,69 +397,120 @@ BODY;
         $calendar = $client->getCalendarByUrl($fake_calendar_url);
 
         $this->assertInstanceOf(
-          '\AgenDAV\CalDAV\Resource\Calendar',
-          $calendar
+            '\AgenDAV\CalDAV\Resource\Calendar',
+            $calendar
         );
+    }
+
+    public function testGetCalendarsFiltersNoReadPrivilege()
+    {
+        $body = <<<BODY
+<?xml version="1.0" encoding="utf-8"?>
+<d:multistatus xmlns:d="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/">
+  <d:response>
+    <d:href>/calendars/toto/</d:href>
+    <d:propstat>
+    <d:prop>
+        <d:resourcetype><d:collection/></d:resourcetype>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+  <d:response>
+    <d:href>/calendars/toto/work/</d:href>
+    <d:propstat>
+    <d:prop>
+        <d:displayname>Work</d:displayname>
+        <cs:getctag>10</cs:getctag>
+        <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype>
+        <d:current-user-privilege-set>
+        <d:privilege><d:read/></d:privilege>
+        </d:current-user-privilege-set>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+  <d:response>
+    <d:href>/calendars/toto/private/</d:href>
+    <d:propstat>
+    <d:prop>
+        <d:displayname>Private</d:displayname>
+        <cs:getctag>20</cs:getctag>
+        <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype>
+        <d:current-user-privilege-set/>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>
+BODY;
+        $response = new Response(207, [], Utils::streamFor($body));
+        $client = $this->createCalDAVClient($response);
+        $calendars = $client->getCalendars('/calendars/toto/');
+
+        $this->assertCount(1, $calendars);
+        $this->assertArrayHasKey('/calendars/toto/work/', $calendars);
+        $this->assertArrayNotHasKey('/calendars/toto/private/', $calendars);
     }
 
     public function testCreateCalendar()
     {
-      $response = new Response(201);
-      $client = $this->createCalDAVClient($response);
+        $response = new Response(201);
+        $client = $this->createCalDAVClient($response);
 
-      $properties = [
+        $properties = [
         Calendar::DISPLAYNAME => 'Calendar name',
         Calendar::CTAG => 'x',
-      ];
-      $calendar = new Calendar(
-        '/fake/calendar',
-        $properties
-      );
+        ];
+        $calendar = new Calendar(
+            '/fake/calendar',
+            $properties
+        );
 
-      $client->createCalendar($calendar);
-      $this->validateMkCalendarRequest($calendar);
+        $client->createCalendar($calendar);
+        $this->validateMkCalendarRequest($calendar);
     }
 
     public function testUpdateCalendar()
     {
-      $response = new Response(200);
-      $client = $this->createCalDAVClient($response);
+        $response = new Response(200);
+        $client = $this->createCalDAVClient($response);
 
-      $properties = [
+        $properties = [
         Calendar::DISPLAYNAME => 'Calendar name',
         Calendar::CTAG => 'x',
-      ];
-      $calendar = new Calendar(
-        '/fake/calendar',
-        $properties
-      );
+        ];
+        $calendar = new Calendar(
+            '/fake/calendar',
+            $properties
+        );
 
-      $client->updateCalendar($calendar);
-      $this->validateProppatchRequest($calendar);
+        $client->updateCalendar($calendar);
+        $this->validateProppatchRequest($calendar);
     }
 
     public function testDeleteCalendar()
     {
-      $response = new Response(204);
-      $client = $this->createCalDAVClient($response);
+        $response = new Response(204);
+        $client = $this->createCalDAVClient($response);
 
-      $calendar = new Calendar('/fake/calendar');
+        $calendar = new Calendar('/fake/calendar');
 
-      $client->deleteCalendar($calendar);
-      $this->validateDeleteCalendarRequest($calendar);
+        $client->deleteCalendar($calendar);
+        $this->validateDeleteCalendarRequest($calendar);
     }
 
 
 
     public function testFetchObjectsFromCalendar()
     {
-      $body = <<<BODY
+        $body = <<<BODY
 <?xml version="1.0" encoding="utf-8"?>
 <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/">
   <d:response>
     <d:href>/cal.php/calendars/demo/fake/c160fd13-829d-4d59-96d2-92fc0f9e6787.ics</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <cal:calendar-data>BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-////NONSGML kigkonsult.se iCalcreator 2.14//
@@ -468,14 +530,14 @@ END:VEVENT
 END:VCALENDAR
         </cal:calendar-data>
         <d:getetag>"cf1ba7bcb47ca422f65854470feaeefd"</d:getetag>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
   </d:response>
   <d:response>
     <d:href>/cal.php/calendars/demo/fake/e2f43f04-030d-4c79-9c8b-d20c87ca5f9d.ics</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <cal:calendar-data>BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-////NONSGML kigkonsult.se iCalcreator 2.14//
@@ -495,59 +557,57 @@ END:VEVENT
 END:VCALENDAR
         </cal:calendar-data>
         <d:getetag>"cf03e087c6bf4f8473f5f76cf17d65fd"</d:getetag>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
   </d:response>
 </d:multistatus>
 BODY;
-      $response = new Response(
-          207,
-          [],
-          Stream::factory($body)
-      );
+        $response = new Response(
+            207,
+            [],
+            Utils::streamFor($body)
+        );
 
-      $this->event_parser
+        $this->event_parser
         ->expects($this->exactly(2))
         ->method('parse')
         ->willReturn(
-          $this->createMock(\AgenDAV\Event::class),
-          $this->createMock(\AgenDAV\Event::class)
+            $this->createMock(\AgenDAV\Event::class),
+            $this->createMock(\AgenDAV\Event::class)
         );
 
-      $client = $this->createCalDAVClient($response);
+        $client = $this->createCalDAVClient($response);
 
-      $calendar = new Calendar('/cal.php/calendars/demo/fake/');
+        $calendar = new Calendar('/cal.php/calendars/demo/fake/');
 
-      $start = '20141101T000000Z';
-      $end = '20141201T000000Z';
-      $objects = $client->fetchObjectsOnCalendar($calendar, $start, $end);
+        $start = '20141101T000000Z';
+        $end = '20141201T000000Z';
+        $objects = $client->fetchObjectsOnCalendar($calendar, $start, $end);
 
-      $this->assertCount(2, $objects);
-      $this->assertEquals(
-          '/cal.php/calendars/demo/fake/c160fd13-829d-4d59-96d2-92fc0f9e6787.ics',
-          $objects[0]->getUrl()
-      );
-      $this->assertEquals('"cf1ba7bcb47ca422f65854470feaeefd"', $objects[0]->getEtag());
-      $this->assertEquals($calendar, $objects[0]->getCalendar());
-      $this->assertInstanceOf('\AgenDAV\Event', $objects[0]->getEvent());
+        $this->assertCount(2, $objects);
+        $this->assertEquals(
+            '/cal.php/calendars/demo/fake/c160fd13-829d-4d59-96d2-92fc0f9e6787.ics',
+            $objects[0]->getUrl()
+        );
+        $this->assertEquals('"cf1ba7bcb47ca422f65854470feaeefd"', $objects[0]->getEtag());
+        $this->assertEquals($calendar, $objects[0]->getCalendar());
+        $this->assertInstanceOf('\AgenDAV\Event', $objects[0]->getEvent());
 
-      $this->assertEquals(
-          '/cal.php/calendars/demo/fake/e2f43f04-030d-4c79-9c8b-d20c87ca5f9d.ics',
-          $objects[1]->getUrl()
-      );
-      $this->assertEquals('"cf03e087c6bf4f8473f5f76cf17d65fd"', $objects[1]->getEtag());
-      $this->assertEquals($calendar, $objects[1]->getCalendar());
-      $this->assertInstanceOf('\AgenDAV\Event', $objects[1]->getEvent());
+        $this->assertEquals(
+            '/cal.php/calendars/demo/fake/e2f43f04-030d-4c79-9c8b-d20c87ca5f9d.ics',
+            $objects[1]->getUrl()
+        );
+        $this->assertEquals('"cf03e087c6bf4f8473f5f76cf17d65fd"', $objects[1]->getEtag());
+        $this->assertEquals($calendar, $objects[1]->getCalendar());
+        $this->assertInstanceOf('\AgenDAV\Event', $objects[1]->getEvent());
 
-      $this->validateFetchObjectsRequest($calendar, new TimeRange($start, $end));
+        $this->validateFetchObjectsRequest($calendar, new TimeRange($start, $end));
     }
 
-    /**
-     * @expectedException \AgenDAV\Exception\NotFound
-     */
     public function testFetchObjectByUidNonExistant()
     {
+        $this->expectException(\AgenDAV\Exception\NotFound::class);
         $body = <<<BODY
 <?xml version="1.0" encoding="utf-8"?>
 <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/"/>
@@ -555,7 +615,7 @@ BODY;
         $response = new Response(
             207,
             [],
-            Stream::factory($body)
+            Utils::streamFor($body)
         );
 
         $client = $this->createCalDAVClient($response);
@@ -572,7 +632,7 @@ BODY;
   <d:response>
     <d:href>/cal.php/calendars/demo/fake/c160fd13-829d-4d59-96d2-92fc0f9e6787.ics</d:href>
     <d:propstat>
-      <d:prop>
+    <d:prop>
         <cal:calendar-data>BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-////NONSGML kigkonsult.se iCalcreator 2.14//
@@ -592,8 +652,8 @@ END:VEVENT
 END:VCALENDAR
         </cal:calendar-data>
         <d:getetag>"cf1ba7bcb47ca422f65854470feaeefd"</d:getetag>
-      </d:prop>
-      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
     </d:propstat>
   </d:response>
 </d:multistatus>
@@ -601,15 +661,15 @@ BODY;
         $response = new Response(
             207,
             [],
-            Stream::factory($body)
+            Utils::streamFor($body)
         );
 
         $this->event_parser
-          ->expects($this->once())
-          ->method('parse')
-          ->willReturn(
+        ->expects($this->once())
+        ->method('parse')
+        ->willReturn(
             $this->createMock(\AgenDAV\Event::class)
-          );
+        );
 
         $client = $this->createCalDAVClient($response);
         $calendar = new Calendar('/cal.php/calendars/demo/fake');
@@ -632,9 +692,9 @@ BODY;
         // the validity check
         $event = $this->createMock(\AgenDAV\Event::class);
         $event
-          ->expects($this->exactly(2))
-          ->method('render')
-          ->willReturn('iCalendar resource');
+        ->expects($this->exactly(2))
+        ->method('render')
+        ->willReturn('iCalendar resource');
 
 
         $object = new CalendarObject('/url', $event);
@@ -652,9 +712,9 @@ BODY;
         // the validity check
         $event = $this->createMock(\AgenDAV\Event::class);
         $event
-          ->expects($this->exactly(2))
-          ->method('render')
-          ->willReturn('iCalendar resource');
+        ->expects($this->exactly(2))
+        ->method('render')
+        ->willReturn('iCalendar resource');
 
         $object = new CalendarObject('/url', $event);
         $object->setEtag('test_etag');
@@ -682,16 +742,16 @@ BODY;
 
         $acl = $this->createMock(\AgenDAV\CalDAV\Share\ACL::class);
         $acl->method('getOwnerPrivileges')
-          ->willReturn([ '{DAV:}all' ]);
+        ->willReturn([ '{DAV:}all' ]);
 
         $acl->method('getDefaultPrivileges')
-          ->willReturn(['{DAV:}minimal']);
+        ->willReturn(['{DAV:}minimal']);
 
         $acl->method('getGrantsPrivileges')
-          ->willReturn([
+        ->willReturn([
             '/u1' => ['{DAV:}write'],
             '/u2' => ['{DAV:}read'],
-          ]);
+        ]);
 
         $calendar = new Calendar('/url');
 
@@ -699,9 +759,211 @@ BODY;
         $this->validateACLRequest($calendar, $acl);
     }
 
+    public function testGetProxiedCalendarsNothingFound()
+    {
+        $body = <<<BODY
+<?xml version="1.0" encoding="utf-8"?>
+<d:multistatus xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
+  <d:response>
+    <d:href>/principals/me/</d:href>
+    <d:propstat>
+    <d:prop>
+        <d:group-membership/>
+        <cs:calendar-proxy-write-for/>
+        <cs:calendar-proxy-read-for/>
+    </d:prop>
+    <d:status>HTTP/1.1 404 Not Found</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>
+BODY;
+        $response = new Response(207, [], Utils::streamFor($body));
+        $client = $this->createCalDAVClient($response);
+
+        $calendars = $client->getProxiedCalendars(new Principal('/principals/me/'));
+
+        $this->assertEmpty($calendars);
+
+        $request = $this->history[0]['request'];
+        $this->assertEquals('PROPFIND', $request->getMethod());
+        $this->assertEquals('/principals/me/', $request->getUri()->getPath());
+        $this->assertEquals(0, (int)$request->getHeaderLine('Depth'));
+        $this->validateBody(
+            $request,
+            $this->xml_generator->propfindBody([
+                '{DAV:}group-membership',
+                '{http://calendarserver.org/ns/}calendar-proxy-write-for',
+                '{http://calendarserver.org/ns/}calendar-proxy-read-for',
+            ])
+        );
+    }
+
+    public function testGetProxiedCalendarsWriteAccess()
+    {
+        $proxy_body = <<<BODY
+<?xml version="1.0" encoding="utf-8"?>
+<d:multistatus xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
+  <d:response>
+    <d:href>/principals/me/</d:href>
+    <d:propstat>
+    <d:prop>
+        <cs:calendar-proxy-write-for>
+        <d:href>/principals/alice/</d:href>
+        </cs:calendar-proxy-write-for>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>
+BODY;
+
+        $client = $this->createCalDAVClientMulti([
+            new Response(207, [], Utils::streamFor($proxy_body)),
+            new Response(207, [], Utils::streamFor($this->buildHomeSetBody('/principals/alice/', '/calendars/alice/'))),
+            new Response(207, [], Utils::streamFor($this->buildCalendarsBody('/calendars/alice/'))),
+        ]);
+
+        $calendars = $client->getProxiedCalendars(new Principal('/principals/me/'));
+
+        $this->assertCount(1, $calendars);
+        $calendar = reset($calendars);
+        $this->assertEquals('/principals/alice/', $calendar->getOwner()->getUrl());
+        $this->assertTrue($calendar->isWritable());
+    }
+
+    public function testGetProxiedCalendarsReadAccess()
+    {
+        $proxy_body = <<<BODY
+<?xml version="1.0" encoding="utf-8"?>
+<d:multistatus xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
+  <d:response>
+    <d:href>/principals/me/</d:href>
+    <d:propstat>
+    <d:prop>
+        <cs:calendar-proxy-read-for>
+        <d:href>/principals/alice/</d:href>
+        </cs:calendar-proxy-read-for>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>
+BODY;
+
+        $client = $this->createCalDAVClientMulti([
+            new Response(207, [], Utils::streamFor($proxy_body)),
+            new Response(207, [], Utils::streamFor($this->buildHomeSetBody('/principals/alice/', '/calendars/alice/'))),
+            new Response(207, [], Utils::streamFor($this->buildCalendarsBody('/calendars/alice/'))),
+        ]);
+
+        $calendars = $client->getProxiedCalendars(new Principal('/principals/me/'));
+
+        $this->assertCount(1, $calendars);
+        $calendar = reset($calendars);
+        $this->assertEquals('/principals/alice/', $calendar->getOwner()->getUrl());
+        $this->assertFalse($calendar->isWritable());
+    }
+
+    public function testGetProxiedCalendarsGroupMembership()
+    {
+        $proxy_body = <<<BODY
+<?xml version="1.0" encoding="utf-8"?>
+<d:multistatus xmlns:d="DAV:">
+  <d:response>
+    <d:href>/principals/me/</d:href>
+    <d:propstat>
+    <d:prop>
+        <d:group-membership>
+        <d:href>/principals/groups/team/</d:href>
+        </d:group-membership>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>
+BODY;
+
+        $client = $this->createCalDAVClientMulti([
+            new Response(207, [], Utils::streamFor($proxy_body)),
+            new Response(207, [], Utils::streamFor($this->buildHomeSetBody('/principals/groups/team/', '/calendars/team/'))),
+            new Response(207, [], Utils::streamFor($this->buildCalendarsBody('/calendars/team/'))),
+        ]);
+
+        $calendars = $client->getProxiedCalendars(new Principal('/principals/me/'));
+
+        $this->assertCount(1, $calendars);
+        $calendar = reset($calendars);
+        $this->assertEquals('/principals/groups/team/', $calendar->getOwner()->getUrl());
+        $this->assertTrue($calendar->isWritable());
+    }
+
+    private function buildHomeSetBody(string $principal_href, string $home_set_href): string
+    {
+        return <<<BODY
+<?xml version="1.0" encoding="utf-8"?>
+<d:multistatus xmlns:d="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav">
+  <d:response>
+    <d:href>{$principal_href}</d:href>
+    <d:propstat>
+    <d:prop>
+        <cal:calendar-home-set>
+        <d:href>{$home_set_href}</d:href>
+        </cal:calendar-home-set>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>
+BODY;
+    }
+
+    private function buildCalendarsBody(string $home_href): string
+    {
+        $cal_href = rtrim($home_href, '/') . '/work/';
+        return <<<BODY
+<?xml version="1.0" encoding="utf-8"?>
+<d:multistatus xmlns:d="DAV:" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/">
+  <d:response>
+    <d:href>{$home_href}</d:href>
+    <d:propstat>
+    <d:prop>
+        <d:resourcetype><d:collection/></d:resourcetype>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+  <d:response>
+    <d:href>{$cal_href}</d:href>
+    <d:propstat>
+    <d:prop>
+        <d:displayname>Work</d:displayname>
+        <cs:getctag>42</cs:getctag>
+        <d:resourcetype><d:collection/><cal:calendar/></d:resourcetype>
+    </d:prop>
+    <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>
+BODY;
+    }
+
     /**
-     * Create CalDAV client using mocked responses
-     */
+    * Create CalDAV client with a sequence of mocked responses
+    */
+    protected function createCalDAVClientMulti(array $responses)
+    {
+        $mock = new MockHandler($responses);
+        $handler_stack = HandlerStack::create($mock);
+        $handler_stack->push(Middleware::history($this->history));
+        $guzzle = new GuzzleClient(['handler' => $handler_stack]);
+        $this->http_client = new HttpClient($guzzle);
+        $xml_toolkit = new Toolkit($this->xml_parser, $this->xml_generator);
+        return new Client($this->http_client, $xml_toolkit, $this->event_parser);
+    }
+
+    /**
+    * Create CalDAV client using mocked responses
+    */
     protected function createCalDAVClient(Response $response)
     {
         $mock = new MockHandler([ $response ]);
@@ -717,16 +979,16 @@ BODY;
 
 
     /**
-     * Validates the request generated by a canAuthenticate() method call
-     */
+    * Validates the request generated by a canAuthenticate() method call
+    */
     protected function validateCheckAuthenticatedRequests()
     {
         $this->getAndValidateLastRequest('OPTIONS');
     }
 
     /**
-     * Validates a PROPFIND request
-     */
+    * Validates a PROPFIND request
+    */
     protected function validatePropfindRequest(array $properties, $url = null, $depth = null)
     {
         $request = $this->getAndValidateLastRequest('PROPFIND');
@@ -736,7 +998,7 @@ BODY;
         }
 
         if ($depth !== null) {
-          $this->validateDepth($request, $depth);
+            $this->validateDepth($request, $depth);
         }
 
         $this->validateContentType($request);
@@ -750,8 +1012,8 @@ BODY;
         $this->assertEquals($calendar->getUrl(), $request->getUri()->getPath());
         $this->validateContentType($request);
         $this->validateBody(
-          $request,
-          $this->xml_generator->mkCalendarBody($calendar->getWritableProperties())
+            $request,
+            $this->xml_generator->mkCalendarBody($calendar->getWritableProperties())
         );
     }
 
@@ -829,11 +1091,11 @@ BODY;
     }
 
     /**
-     * Returns last request
-     *
-     * @string $method HTTP method
-     * @return \Psr\Http\Message\RequestInterface
-     */
+    * Returns last request
+    *
+    * @string $method HTTP method
+    * @return \Psr\Http\Message\RequestInterface
+    */
     private function getAndValidateLastRequest($method)
     {
         $this->assertCount(1, $this->history);
@@ -841,17 +1103,17 @@ BODY;
         $request = $transaction['request'];
 
         $this->assertEquals(
-          $method,
-          $request->getMethod(),
-          'Expected request method to be ' . $method . ', found ' . $request->getMethod()
+            $method,
+            $request->getMethod(),
+            'Expected request method to be ' . $method . ', found ' . $request->getMethod()
         );
 
         return $request;
     }
 
     /**
-     * Validates Content-Type header
-     */
+    * Validates Content-Type header
+    */
     private function validateContentType(RequestInterface $request, $match = 'application/xml; charset=utf-8')
     {
         $this->assertEquals(
@@ -862,20 +1124,20 @@ BODY;
     }
 
     /**
-     * Validates Depth header
-     */
+    * Validates Depth header
+    */
     private function validateDepth(RequestInterface $request, $depth)
     {
-          $this->assertEquals(
+        $this->assertEquals(
             $depth,
             (int)$request->getHeaderLine('Depth'),
             'Expected Depth to be ' . $depth . ', is ' . $request->getHeaderLine('Depth')
-          );
+        );
     }
 
     /**
-     * Validates request body
-     */
+    * Validates request body
+    */
     private function validateBody(RequestInterface $request, $body)
     {
         $this->assertEquals(

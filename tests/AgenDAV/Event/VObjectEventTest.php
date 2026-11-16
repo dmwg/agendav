@@ -17,7 +17,7 @@ class VObjectEventTest extends TestCase
 
     public static $rrule = 'FREQ=DAILY;COUNT=4';
 
-    public function setUp()
+    public function setUp(): void
     {
         $this->vcalendar = new VCalendar;
         // MYPROPERTY is a sample property used to check if our code copies
@@ -25,6 +25,7 @@ class VObjectEventTest extends TestCase
         $this->vevent = $this->vcalendar->add('VEVENT', [
             'UID' => '123456',
             'SUMMARY' => 'Initial event instance',
+            'COLOR' => 'peachpuff',
             'MYPROPERTY' => 'Check',
         ]);
     }
@@ -37,9 +38,9 @@ class VObjectEventTest extends TestCase
         $this->assertEquals('123456', $event->getUid());
     }
 
-    /** @expectedException \LogicException */
     public function testSetUidWhenAlreadySet()
     {
+        $this->expectException(\LogicException::class);
         $event = new VObjectEvent($this->vcalendar);
         $event->setUid('9876');
     }
@@ -187,9 +188,9 @@ class VObjectEventTest extends TestCase
         );
     }
 
-    /** @expectedException \LogicException */
     public function testCreateEventInstanceWithNoUid()
     {
+        $this->expectException(\LogicException::class);
         unset($this->vevent->UID);
         $event = new VObjectEvent($this->vcalendar);
 
@@ -219,22 +220,23 @@ class VObjectEventTest extends TestCase
         $this->assertEquals(self::$rrule, $instance->getRepeatRule());
     }
 
-    /** @expectedException \InvalidArgumentException */
     public function testSetBaseInstanceNoMatchingIds()
     {
+        $this->expectException(\InvalidArgumentException::class);
         $event = new VObjectEvent($this->vcalendar);
 
         $another_vevent = $this->vcalendar->add('VEVENT', [
             'UID' => 'xxxx',
-        ]);;
+        ]);
+        ;
 
         $instance = new VObjectEventInstance($another_vevent);
         $event->storeInstance($instance);
     }
 
-    /** @expectedException \Exception */
     public function testSetBaseInstanceException()
     {
+        $this->expectException(\Exception::class);
         $vevent_exception = $this->vcalendar->add('VEVENT', [
             'RECURRENCE-ID' => '20150110T092100Z',
         ]);
@@ -272,6 +274,7 @@ class VObjectEventTest extends TestCase
         $instance->setStart($now, true);
         $instance->setSummary('New test summary');
         $instance->setRecurrenceId(RecurrenceId::buildFromString('20150110T100500Z'));
+        $instance->setColor('navajowhite');
 
         $event->storeInstance($instance);
 
@@ -280,6 +283,7 @@ class VObjectEventTest extends TestCase
         $this->assertEmpty($vevent->{'RECURRENCE-ID'});
         $this->assertEquals('Check', $vevent->MYPROPERTY);
         $this->assertEquals('New test summary', $vevent->SUMMARY);
+        $this->assertEquals('navajowhite', $vevent->COLOR);
     }
 
 
@@ -323,9 +327,9 @@ class VObjectEventTest extends TestCase
         // Check that base VEVENT is still there
         $base = $event->getEventInstance();
         $this->assertEquals(
-           $this->vevent->SUMMARY,
-           $base->getSummary()
-       );
+            $this->vevent->SUMMARY,
+            $base->getSummary()
+        );
 
         // Some checks on new instance
         $this->assertTrue($event->isException($recurrence_id));
@@ -352,18 +356,16 @@ class VObjectEventTest extends TestCase
         // Check that base VEVENT is still there
         $base = $event->getEventInstance();
         $this->assertEquals(
-           $this->vevent->SUMMARY,
-           $base->getSummary()
-       );
+            $this->vevent->SUMMARY,
+            $base->getSummary()
+        );
 
         $this->assertTrue($event->isException($recurrence_id));
     }
 
-    /**
-     * @expectedException \LogicException
-     */
     public function testStoreInstanceExceptionOnRemovedDate()
     {
+        $this->expectException(\LogicException::class);
         $this->vevent->RRULE = 'FREQ=DAILY';
         $this->vevent->DTSTART = '20150713T012345Z';
         $this->vevent->EXDATE = '20150714T012345Z';
@@ -432,11 +434,9 @@ class VObjectEventTest extends TestCase
         );
     }
 
-    /**
-     * @expectedException \AgenDAV\Exception\NotFound
-     */
     public function testRemoveInstanceForAlreadyRemovedInstance()
     {
+        $this->expectException(\AgenDAV\Exception\NotFound::class);
         $this->vevent->RRULE = 'FREQ=DAILY';
         $this->vevent->DTSTART = '20150713T012345Z';
         $this->vevent->EXDATE = '20150714T012345Z';
@@ -476,9 +476,9 @@ class VObjectEventTest extends TestCase
     }
 
 
-    /** @expectedException \LogicException */
     public function testGetEventInstanceOnNonRecurrentEvent()
     {
+        $this->expectException(\LogicException::class);
         $event = new VObjectEvent($this->vcalendar);
         $instance = $event->getEventInstance(RecurrenceId::buildFromString('20150601T012345Z'));
     }
@@ -502,9 +502,9 @@ class VObjectEventTest extends TestCase
     }
 
     /**
-     * This test is used to check if searching for RECURRENCE-IDs works with
-     * different timezones
-     */
+    * This test is used to check if searching for RECURRENCE-IDs works with
+    * different timezones
+    */
     public function testGetEventInstanceForExistingExceptionWithTimeZoneOnRecurrentEvent()
     {
         $datetime = new \DateTimeImmutable('2015-07-01 13:29:00', new \DateTimeZone('Europe/Madrid'));
@@ -557,11 +557,9 @@ class VObjectEventTest extends TestCase
         );
     }
 
-    /**
-     * @expectedException \AgenDAV\Exception\NotFound
-     */
     public function testGetEventInstanceForRemovedInstance()
     {
+        $this->expectException(\AgenDAV\Exception\NotFound::class);
         $this->vevent->RRULE = 'FREQ=DAILY';
         $this->vevent->DTSTART = '20150120T012345Z';
         $this->vevent->EXDATE = '20150716T012345Z';

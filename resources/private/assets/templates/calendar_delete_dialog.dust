@@ -1,0 +1,18 @@
+<div id="calendar_delete_dialog">
+{>form_open/}
+<input type="hidden" name="calendar" value="{calendar}" />
+<input type="hidden" name="is_subscribed"
+value="{?is_subscribed}true{:else}false{/is_subscribed}" />
+
+<p>
+{@i18n type="messages" name="info_confirmcaldelete" /}
+</p>
+
+<p><div class="calendar_color" style="background-color: {color};"></div> {displayname}</p>
+
+<p>
+{@i18n type="messages" name="info_permanentremoval" /}
+</p>
+
+{>form_close/}
+</div>
