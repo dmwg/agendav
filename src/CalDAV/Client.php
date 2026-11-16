@@ -181,63 +181,6 @@ class Client
         return $group_calendars;
     }
     
-    /**
-    * Queries the CalDAV server for proxied calendars and calendars
-    * from groups.
-    *
-    * @param \AgenDAV\Data\Principal $principal User principal
-    *
-    * @return array Associative array, [url => Calendar]
-    */
-    public function getProxiedCalendars(Principal $principal)
-    {
-        $body = $this->xml_toolkit->generateRequestBody(
-            'PROPFIND',
-            [
-                '{DAV:}group-membership',
-                '{http://calendarserver.org/ns/}calendar-proxy-write-for',
-                '{http://calendarserver.org/ns/}calendar-proxy-read-for',
-            ]
-        );
-
-        $url = $principal->getUrl();
-        $response = $this->propfind($url, 0, $body);
-
-        $readOnlyProperty = '{http://calendarserver.org/ns/}calendar-proxy-read-for';
-
-        $proxiedCalendars = [];
-        foreach ($response as $propertyName => $propertyValue) {
-            if (!is_array($propertyValue)) {
-                continue;
-            }
-
-            $isWritable = ($propertyName !== $readOnlyProperty);
-
-            foreach ($propertyValue as $resource) {
-                if (!isset($resource['value'])) {
-                    continue;
-                }
-
-                $proxyUrl = $resource['value'];
-
-                try {
-                    $homeSet = $this->getCalendarHomeSet(new Principal($proxyUrl));
-                } catch (\AgenDAV\Exception\NotFound $e) {
-                    continue;
-                }
-
-                $calendars = $this->getCalendars($homeSet);
-                foreach ($calendars as $calendar) {
-                    $calendar->setOwner(new Principal($proxyUrl));
-                    $calendar->setWritable($isWritable);
-                }
-
-                $proxiedCalendars = array_merge($proxiedCalendars, $calendars);
-            }
-        }
-
-        return $proxiedCalendars;
-    }
 
     /**
     * Gets the list of calendars accessible by current user on a given URL
