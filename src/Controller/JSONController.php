@@ -91,6 +91,11 @@ abstract class JSONController
         } catch (\AgenDAV\Exception\PermissionDenied $exception) {
             return $this->generateException($response, $translator->trans('messages.error_denied'));
         } catch (\AgenDAV\Exception\NotFound $exception) {
+            // Keep the reason (which calendar or object URL) for the admin
+            $this->container->get('monolog')->warning(sprintf(
+                'Not found: %s',
+                $exception->getMessage()
+            ));
             return $this->generateException($response, $translator->trans('messages.error_element_not_found'));
         } catch (\AgenDAV\Exception\ElementModified $exception) {
             return $this->generateException($response, $translator->trans('messages.error_element_changed'));

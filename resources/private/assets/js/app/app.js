@@ -693,39 +693,19 @@ var open_event_edit_dialog = function open_event_edit_dialog(event) {
 
       event_fields.timezone = AgenDAVUserPrefs.timezone;
 
-      // New events can be created on several calendars at once
-      if (is_new) {
-        var targets = selected_calendars($('#event_edit_form'));
+      // Events can be saved on several calendars at once. For an existing
+      // event, its own calendar gets the update and the others get copies.
+      var targets = selected_calendars($('#event_edit_form'));
 
-        if (targets.length === 0) {
-          show_error(
-            t_default('messages', 'error_nocalendarselected', 'Select at least one calendar'),
-            ''
-          );
-          return;
-        }
-
-        save_event_in_calendars(event_fields, targets);
+      if (targets.length === 0) {
+        show_error(
+          t_default('messages', 'error_nocalendarselected', 'Select at least one calendar'),
+          ''
+        );
         return;
       }
 
-      send_form({
-        form_object: $('#event_edit_form'),
-        data: event_fields,
-        success: function(affected_calendars) {
-          // Reload only affected calendars
-          var total = affected_calendars.length;
-          for (var i=0;i<total;i++) {
-            reload_event_source(affected_calendars[i]);
-          }
-
-          destroy_dialog('#event_edit_dialog');
-        },
-        exception: function(error) {
-          // Validation error
-          show_error(t('messages', 'error_invalidinput'), error);
-        }
-      });
+      save_event_in_calendars(event_fields, targets, is_new ? null : event.calendar);
     }
   };
 
@@ -770,22 +750,12 @@ var open_event_edit_dialog = function open_event_edit_dialog(event) {
       // Reminders
       reminders_manager();
 
-      // Calendar multi-select dropdown (new events only)
+      // Calendar multi-select dropdown
       setup_calendar_multiselect($('#event_edit_dialog'), function(targets) {
+        update_calendar_multiselect_help($('#event_edit_dialog'), is_new ? null : event.calendar);
+
         if (targets.length > 0) {
           $.fn.colorPicker.calendarColor = targets[0].color;
-          $('input.pick_color').next('.color_picker').css('background-color', $.fn.colorPicker.calendarColor);
-        }
-      });
-
-      // Update color picker when calendar selection changes
-      $('#event_edit_form select[name="calendar"]').on('change', function() {
-        var selectedCalendarId = $(this).val();
-        var selectedCalendar = event.calendars.find(function(calendar) {
-          return calendar.calendar === selectedCalendarId;
-        });
-        if (selectedCalendar) {
-          $.fn.colorPicker.calendarColor = selectedCalendar.color;
           $('input.pick_color').next('.color_picker').css('background-color', $.fn.colorPicker.calendarColor);
         }
       });
@@ -903,14 +873,54 @@ var setup_calendar_multiselect = function setup_calendar_multiselect($dialog, on
 };
 
 /**
- * Creates the same new event on several calendars, one request per calendar.
- * Requests are sent one after another. If some calendars fail, the ones that
- * worked are unticked so pressing Save again won't create duplicates.
+ * Turns the fields of an existing event into the fields of a new, independent
+ * copy, so the server creates it instead of updating or moving the original
+ *
+ * @param Object fields Serialized event form
+ * @param string calendar_url Calendar for the copy
+ * @return Object
+ */
+var event_copy_fields = function event_copy_fields(fields, calendar_url) {
+  var copy = $.extend({}, fields, { calendar: calendar_url });
+
+  // A single occurrence of a recurring event carries the series' repeat
+  // rule; copying it would create a new series, so copy it as a plain event
+  if (copy.recurrence_id) {
+    delete copy.rrule;
+    delete copy.rrule_original;
+  }
+
+  delete copy.modification;
+  delete copy.uid;
+  delete copy.href;
+  delete copy.etag;
+  delete copy.original_calendar;
+  delete copy.recurrence_id;
+  delete copy.fixed_repeat_rule;
+
+  return copy;
+};
+
+/**
+ * Saves an event on several calendars, one request per calendar, sent one
+ * after another.
+ *
+ * New events (original_url null) are created on every target.
+ *
+ * Existing events: the first request updates the event on its own calendar,
+ * or moves it to the first target if its calendar was unticked. Every other
+ * target gets an independent copy. If that first request fails, nothing else
+ * is sent.
+ *
+ * If some calendars fail, the dialog stays open and the calendars that worked
+ * are unticked, so pressing Save again only retries the failed ones and
+ * doesn't create duplicates or update the original twice.
  *
  * @param Object fields Serialized event form
  * @param Array targets Result of selected_calendars()
+ * @param string|null original_url Calendar of the event being edited
  */
-var save_event_in_calendars = function save_event_in_calendars(fields, targets) {
+var save_event_in_calendars = function save_event_in_calendars(fields, targets, original_url) {
   var $form = $('#event_edit_form');
 
   if ($form.data('saving') === true) {
@@ -924,25 +934,63 @@ var save_event_in_calendars = function save_event_in_calendars(fields, targets) 
     return;
   }
 
+  // Build the list of requests
+  var jobs = [];
+  var copy_targets = targets;
+
+  if (original_url && $form.data('original_done') !== true) {
+    var primary = null;
+    $.each(targets, function(i, cal) {
+      if (cal.url === original_url) {
+        primary = cal;
+      }
+    });
+
+    // Original calendar unticked: move the event to the first target
+    if (primary === null) {
+      primary = targets[0];
+    }
+
+    jobs.push({
+      target: primary,
+      data: $.extend({}, fields, { calendar: primary.url }),
+      original: true
+    });
+
+    copy_targets = $.grep(targets, function(cal) { return cal.url !== primary.url; });
+  }
+
+  $.each(copy_targets, function(i, cal) {
+    jobs.push({
+      target: cal,
+      data: original_url ? event_copy_fields(fields, cal.url) : $.extend({}, fields, { calendar: cal.url }),
+      original: false
+    });
+  });
+
   $form.data('saving', true);
 
+  var to_reload = [];
   var succeeded = [];
   var failed = [];
   var index = 0;
 
+  var reload_all = function() {
+    $.each(to_reload, function(i, url) {
+      reload_event_source(url);
+    });
+  };
+
   var finish = function() {
     $form.data('saving', false);
-
-    $.each(succeeded, function(i, cal) {
-      reload_event_source(cal.url);
-    });
+    reload_all();
 
     if (failed.length === 0) {
       destroy_dialog('#event_edit_dialog');
       return;
     }
 
-    // Untick calendars where the event was already created
+    // Untick calendars where the event was already saved
     $.each(succeeded, function(i, cal) {
       $form.find('input.calendar-choice').filter(function() {
         return $(this).val() === cal.url;
@@ -961,37 +1009,107 @@ var save_event_in_calendars = function save_event_in_calendars(fields, targets) 
     );
   };
 
+  // Stops the whole chain: used when the update of the original fails or
+  // the input is invalid
+  var abort = function(title, message) {
+    $form.data('saving', false);
+    reload_all();
+    show_error(title, message);
+  };
+
   var next = function() {
-    if (index >= targets.length) {
+    if (index >= jobs.length) {
       finish();
       return;
     }
 
-    var target = targets[index++];
+    var job = jobs[index++];
 
     send_form({
       form_object: $form,
-      data: $.extend({}, fields, { calendar: target.url }),
-      success: function() {
-        succeeded.push(target);
+      data: job.data,
+      success: function(affected_calendars) {
+        $.each(affected_calendars || [job.target.url], function(i, url) {
+          if ($.inArray(url, to_reload) === -1) {
+            to_reload.push(url);
+          }
+        });
+        succeeded.push(job.target);
+
+        if (job.original) {
+          // The original has a new etag now. Never send this update again;
+          // a retry only creates the missing copies.
+          $form.data('original_done', true);
+          $form.find('input.calendar-choice').filter(function() {
+            return $(this).val() === original_url;
+          }).prop('checked', false).prop('disabled', true);
+        }
+
         next();
       },
       exception: function(error) {
-        // Validation error: same input for every calendar, so stop here
-        $form.data('saving', false);
-        $.each(succeeded, function(i, cal) {
-          reload_event_source(cal.url);
-        });
-        show_error(t('messages', 'error_invalidinput'), error);
+        // Before anything was saved, this is a problem with the input
+        // itself (or the original event), which would repeat on every
+        // calendar: stop. Afterwards, it only concerns this calendar.
+        if (succeeded.length === 0) {
+          // The original couldn't be saved (e.g. deleted or changed
+          // elsewhere): the server's message says why
+          abort(job.original ? t('messages', 'error_oops') : t('messages', 'error_invalidinput'), error);
+          return;
+        }
+        failed.push({ calendar: job.target, message: error });
+        next();
       },
       error: function(message) {
-        failed.push({ calendar: target, message: message });
+        if (job.original) {
+          abort(t('messages', 'error_oops'), message);
+          return;
+        }
+        failed.push({ calendar: job.target, message: message });
         next();
       }
     });
   };
 
   next();
+};
+
+/**
+ * Explains on the edit form what saving an existing event will do
+ */
+var update_calendar_multiselect_help = function update_calendar_multiselect_help($dialog, original_url) {
+  var $help = $dialog.find('.calendar-multiselect-help');
+
+  if ($help.length === 0 || !original_url) {
+    return;
+  }
+
+  var targets = selected_calendars($dialog);
+  var keeps_original = $.grep(targets, function(c) { return c.url === original_url; }).length > 0;
+  var original_done = $dialog.find('#event_edit_form').data('original_done') === true;
+  // One target gets the update or move, the rest get copies
+  var copies = original_done ? targets.length : Math.max(targets.length - 1, 0);
+  var text = '';
+
+  if (original_done) {
+    text = t_default('messages', 'info_calendars_copies_only',
+      'The event was already updated. Saving creates copies on the checked calendars.');
+  } else if (targets.length === 0) {
+    text = '';
+  } else if (!keeps_original) {
+    text = t_default('messages', 'info_calendars_move',
+      'The event will be moved to %calendar.', { '%calendar': targets[0].displayname });
+  } else {
+    text = t_default('messages', 'info_calendars_update',
+      'The event will be updated in its calendar.');
+  }
+
+  if (copies > 0) {
+    text += ' ' + t_default('messages', 'info_calendars_copies',
+      'Independent copies will be created on %count other calendar(s).', { '%count': copies });
+  }
+
+  $help.text(text);
 };
 
 

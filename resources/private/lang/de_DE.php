@@ -282,6 +282,10 @@ $translations = [
 
     'messages.error_nocalendarselected' => 'Bitte mindestens einen Kalender auswählen',
     'messages.error_eventpartiallysaved' => 'Der Termin konnte in diesen Kalendern nicht gespeichert werden',
+    'messages.info_calendars_update' => 'Der Termin wird in seinem Kalender aktualisiert.',
+    'messages.info_calendars_move' => 'Der Termin wird nach %calendar verschoben.',
+    'messages.info_calendars_copies' => 'In %count weiteren Kalender(n) werden unabhängige Kopien angelegt.',
+    'messages.info_calendars_copies_only' => 'Der Termin wurde bereits aktualisiert. Speichern legt Kopien in den markierten Kalendern an.',
 ];
 
 return $translations;

@@ -282,6 +282,10 @@ $translations = [
 
     'messages.error_nocalendarselected' => 'Select at least one calendar',
     'messages.error_eventpartiallysaved' => 'The event could not be saved on these calendars',
+    'messages.info_calendars_update' => 'The event will be updated in its calendar.',
+    'messages.info_calendars_move' => 'The event will be moved to %calendar.',
+    'messages.info_calendars_copies' => 'Independent copies will be created on %count other calendar(s).',
+    'messages.info_calendars_copies_only' => 'The event was already updated. Saving creates copies on the checked calendars.',
 ];
 
 return $translations;
